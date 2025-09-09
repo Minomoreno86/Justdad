@@ -1,0 +1,41 @@
+/* 
+  Localizable.strings
+  JustDad - Spanish (es)
+  
+  Localized strings for Spanish users
+*/
+
+// MARK: - App Basic
+"app_title" = "JustDad";
+
+// MARK: - Tab Navigation
+"tab_home" = "Inicio";
+"tab_agenda" = "Agenda";
+"tab_finance" = "Finanzas";
+"tab_emotions" = "Emociones";
+"tab_community" = "Comunidad";
+
+// MARK: - Call to Actions
+"cta_new_entry" = "Nueva Entrada";
+"cta_new_visit" = "Nueva Visita";
+"cta_register_payment" = "Registrar Gasto";
+
+// MARK: - Onboarding
+"onboarding_welcome_title" = "Bienvenido a JustDad";
+"onboarding_privacy_title" = "Tu Privacidad Importa";
+"onboarding_goals_title" = "¿Qué es Importante para Ti?";
+
+// MARK: - General
+"continue" = "Continuar";
+"cancel" = "Cancelar";
+"save" = "Guardar";
+"delete" = "Eliminar";
+"edit" = "Editar";
+
+// MARK: - Features
+"home_greeting" = "Hola, papá";
+"journal_title" = "Diario de Papá";
+"expenses_title" = "Gastos";
+"visits_title" = "Citas Médicas";
+"emotions_title" = "Estado Emocional";
+"community_title" = "Comunidad de Papás";

@@ -1,0 +1,27 @@
+{
+    "files.associations": {
+        "*.swift": "swift",
+        "project.pbxproj": "pbxproj",
+        "*.strings": "strings",
+        "*.storyboard": "xml",
+        "*.xcdatamodeld": "xml"
+    },
+    "editor.formatOnSave": true,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+    "swift.format.indentWidth": 4,
+    "swift.format.tabWidth": 4,
+    "swift.format.respectsExistingLineBreaks": true,
+    "files.exclude": {
+        "**/build/": true,
+        "**/DerivedData/": true,
+        "**/.build/": true,
+        "**/xcuserdata/": true
+    },
+    "search.exclude": {
+        "**/build/": true,
+        "**/DerivedData/": true,
+        "**/.build/": true,
+        "**/xcuserdata/": true
+    }
+}

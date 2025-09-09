@@ -1,0 +1,68 @@
+//
+//  SoloPapaApp.swift (formerly JustDadApp.swift)
+//  SoloPapá - App for divorced fathers
+//  Bundle ID: com.gynevia.solopapa
+//
+//  Created by Jorge Vasquez rodriguez on 8/9/25.
+//
+
+import SwiftUI
+
+@main
+struct SoloPapaApp: App {
+    @StateObject private var appState = AppState()
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    
+    var body: some Scene {
+        WindowGroup {
+            TabView(selection: $appState.selectedTab) {
+                HomeView()
+                    .tabItem {
+                        Image(systemName: "house.fill")
+                        Text("Inicio")
+                    }
+                    .tag(AppState.Tab.home)
+                
+                AgendaView()
+                    .tabItem {
+                        Image(systemName: "calendar")
+                        Text("Agenda")
+                    }
+                    .tag(AppState.Tab.agenda)
+                
+                FinanceView()
+                    .tabItem {
+                        Image(systemName: "creditcard.fill")
+                        Text("Finanzas")
+                    }
+                    .tag(AppState.Tab.finance)
+                
+                EmotionsView()
+                    .tabItem {
+                        Image(systemName: "heart.fill")
+                        Text("Emociones")
+                    }
+                    .tag(AppState.Tab.emotions)
+                
+                CommunityView()
+                    .tabItem {
+                        Image(systemName: "person.3.fill")
+                        Text("Comunidad")
+                    }
+                    .tag(AppState.Tab.community)
+            }
+            .accentColor(.blue)
+            .environmentObject(appState)
+            .fullScreenCover(isPresented: .constant(!hasCompletedOnboarding)) {
+                OnboardingContainerView(
+                    onComplete: {
+                        hasCompletedOnboarding = true
+                    }
+                )
+            }
+            .sheet(isPresented: $appState.showSOSSheet) {
+                SOSView()
+            }
+        }
+    }
+}

@@ -1,0 +1,84 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build Swift Project",
+			"type": "shell",
+			"command": "xcodebuild",
+			"args": [
+				"-project",
+				"JustDad.xcodeproj",
+				"-scheme",
+				"JustDad",
+				"-destination",
+				"platform=iOS Simulator,name=iPhone 15",
+				"build"
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"isBackground": false,
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": false
+			}
+		},
+		{
+			"label": "Clean Swift Project",
+			"type": "shell",
+			"command": "xcodebuild",
+			"args": [
+				"-project",
+				"JustDad.xcodeproj",
+				"-scheme",
+				"JustDad",
+				"clean"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Run iOS Simulator",
+			"type": "shell",
+			"command": "xcodebuild",
+			"args": [
+				"-project",
+				"JustDad.xcodeproj",
+				"-scheme",
+				"JustDad",
+				"-destination",
+				"platform=iOS Simulator,name=iPhone 15",
+				"run"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Open in Xcode",
+			"type": "shell",
+			"command": "open",
+			"args": [
+				"JustDad.xcodeproj"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "silent"
+			}
+		}
+	]
+}

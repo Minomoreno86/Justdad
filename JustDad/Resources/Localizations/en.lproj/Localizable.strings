@@ -1,0 +1,41 @@
+/* 
+  Localizable.strings
+  JustDad - English (en)
+  
+  Localized strings for English users
+*/
+
+// MARK: - App Basic
+"app_title" = "JustDad";
+
+// MARK: - Tab Navigation
+"tab_home" = "Home";
+"tab_agenda" = "Agenda";
+"tab_finance" = "Finance";
+"tab_emotions" = "Emotions";
+"tab_community" = "Community";
+
+// MARK: - Call to Actions
+"cta_new_entry" = "New Entry";
+"cta_new_visit" = "New Visit";
+"cta_register_payment" = "Register Expense";
+
+// MARK: - Onboarding
+"onboarding_welcome_title" = "Welcome to JustDad";
+"onboarding_privacy_title" = "Your Privacy Matters";
+"onboarding_goals_title" = "What's Important to You?";
+
+// MARK: - General
+"continue" = "Continue";
+"cancel" = "Cancel";
+"save" = "Save";
+"delete" = "Delete";
+"edit" = "Edit";
+
+// MARK: - Features
+"home_greeting" = "Hello, dad";
+"journal_title" = "Dad's Journal";
+"expenses_title" = "Expenses";
+"visits_title" = "Medical Visits";
+"emotions_title" = "Emotional State";
+"community_title" = "Dad's Community";
