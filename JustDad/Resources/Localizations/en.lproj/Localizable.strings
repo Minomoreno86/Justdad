@@ -39,3 +39,13 @@
 "visits_title" = "Medical Visits";
 "emotions_title" = "Emotional State";
 "community_title" = "Dad's Community";
+
+// MARK: - Journal
+"journal_search_placeholder" = "Search entries...";
+"journal_empty_title" = "No entries yet";
+"journal_empty_message" = "Start by writing your first journal entry to document special moments with your child.";
+"journal_empty_action" = "Create first entry";
+"journal_new_entry" = "New Entry";
+"journal_mood_happy" = "Happy";
+"journal_mood_neutral" = "Neutral";
+"journal_mood_stressed" = "Stressed";

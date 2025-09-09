@@ -39,3 +39,13 @@
 "visits_title" = "Citas Médicas";
 "emotions_title" = "Estado Emocional";
 "community_title" = "Comunidad de Papás";
+
+// MARK: - Journal
+"journal_search_placeholder" = "Buscar en entradas...";
+"journal_empty_title" = "No hay entradas aún";
+"journal_empty_message" = "Comienza escribiendo tu primera entrada en el diario para documentar momentos especiales con tu hijo.";
+"journal_empty_action" = "Crear primera entrada";
+"journal_new_entry" = "Nueva Entrada";
+"journal_mood_happy" = "Feliz";
+"journal_mood_neutral" = "Normal";
+"journal_mood_stressed" = "Estresado";
