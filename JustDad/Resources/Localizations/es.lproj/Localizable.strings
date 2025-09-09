@@ -31,6 +31,8 @@
 "save" = "Guardar";
 "delete" = "Eliminar";
 "edit" = "Editar";
+"done" = "Hecho";
+"settings" = "Configuración";
 
 // MARK: - Features
 "home_greeting" = "Hola, papá";
@@ -48,4 +50,122 @@
 "journal_new_entry" = "Nueva Entrada";
 "journal_mood_happy" = "Feliz";
 "journal_mood_neutral" = "Normal";
+
+// MARK: - Agenda Module
+"agenda.title" = "Agenda";
+"agenda.view_mode" = "Modo de Vista";
+"agenda.sync_calendar" = "Sincronizar con Calendario";
+"agenda.go_to_today" = "Ir a Hoy";
+"agenda.add_visit" = "Agregar Visita";
+"agenda.no_visits_today.title" = "No hay visitas hoy";
+"agenda.no_visits_today.subtitle" = "Toca + para programar una visita";
+"agenda.permission.title" = "Acceso al Calendario";
+"agenda.permission.message" = "Habilita el acceso al calendario en Configuración para sincronizar tus visitas.";
+
+// MARK: - Visit Types
+"visit.type.weekend" = "Fin de Semana";
+"visit.type.dinner" = "Cena";
+"visit.type.event" = "Evento";
+"visit.type.general" = "General";
+"visit.type.emergency" = "Emergencia";
+
+// MARK: - Calendar Views
+"calendar.view.month" = "Mes";
+"calendar.view.week" = "Semana";
+"calendar.view.list" = "Lista";
+"calendar.previous_month" = "Mes anterior";
+"calendar.next_month" = "Siguiente mes";
+"calendar.today" = "Hoy";
+"calendar.selected" = "Seleccionado";
+"calendar.visits_count" = "%d visitas";
+
+// MARK: - Visit Forms
+"new_visit.title" = "Nueva Visita";
+"edit_visit.title" = "Editar Visita";
+"delete_visit" = "Eliminar Visita";
+"visit.title.placeholder" = "Título de la visita";
+"visit.basic_info" = "Información Básica";
+"visit.date_time" = "Fecha y Hora";
+"visit.start_date" = "Fecha de Inicio";
+"visit.end_date" = "Fecha de Fin";
+"visit.date_validation" = "La fecha de fin debe ser posterior a la de inicio";
+"visit.type" = "Tipo de Visita";
+"visit.type_section" = "Tipo de Visita";
+"visit.location" = "Ubicación";
+"visit.location.placeholder" = "Ubicación (opcional)";
+"visit.reminders" = "Recordatorios";
+"visit.reminder" = "Recordatorio";
+"visit.reminder.footer" = "Recibe notificaciones antes de que comience tu visita";
+"visit.recurrence" = "Recurrencia";
+"visit.recurring" = "Visita Recurrente";
+"visit.repeat" = "Repetir";
+"visit.recurrence.footer" = "Esta visita se repetirá automáticamente";
+"visit.notes" = "Notas";
+"visit.notes.placeholder" = "Notas adicionales (opcional)";
+
+// MARK: - Recurrence Rules
+"recurrence.daily" = "Diario";
+"recurrence.weekly" = "Semanal";
+"recurrence.biweekly" = "Quincenal";
+"recurrence.monthly" = "Mensual";
+
+// MARK: - Reminder Options
+"reminder.none" = "Ninguno";
+"reminder.at_time" = "A la hora del evento";
+"reminder.5_minutes" = "5 minutos antes";
+"reminder.15_minutes" = "15 minutos antes";
+"reminder.30_minutes" = "30 minutos antes";
+"reminder.1_hour" = "1 hora antes";
+"reminder.2_hours" = "2 horas antes";
+"reminder.1_day" = "1 día antes";
+"reminder.minutes" = "%d minutos antes";
+"reminder.hours" = "%d horas antes";
+"select_reminder" = "Seleccionar Recordatorio";
+"select_recurrence" = "Seleccionar Recurrencia";
+
+// MARK: - Visit Lists
+"visits.search.placeholder" = "Buscar visitas...";
+"visits.empty.title" = "No hay visitas programadas";
+"visits.empty.subtitle" = "Toca + para agregar tu primera visita";
+"visits.empty.search.title" = "No se encontraron visitas";
+"visits.empty.search.subtitle" = "Intenta con un término diferente";
+"visits.empty.filter.title" = "No hay visitas que coincidan con el filtro";
+"visits.empty.filter.subtitle" = "Intenta cambiar el filtro";
+
+// MARK: - Filters
+"filter.all" = "Todas";
+"filter.upcoming" = "Próximas";
+"filter.past" = "Pasadas";
+
+// MARK: - Delete Confirmations
+"delete.visit.title" = "Eliminar Visita";
+"delete.visit.message" = "Esta acción no se puede deshacer.";
+"delete.visit.warning" = "Eliminar esta visita la quitará de tu calendario permanentemente.";
+
+// MARK: - Notifications
+"notification.visit.title" = "Recordatorio de Visita";
+"notification.visit.body" = "Tu visita '%@' comienza en %d minutos";
+
+// MARK: - Repository Errors
+"agenda.error.visit_not_found" = "Visita no encontrada";
+"agenda.error.permission_denied" = "Permiso de calendario denegado";
+"agenda.error.eventkit_unavailable" = "EventKit no disponible";
+"agenda.error.sync_failed" = "Falló la sincronización del calendario";
+
+// MARK: - Mock Visit Data
+"mock.visit.weekend.title" = "Fin de semana con los niños";
+"mock.visit.weekend.location" = "Mi apartamento";
+"mock.visit.weekend.notes" = "Planificar actividades y preparar almuerzo";
+"mock.visit.dinner.title" = "Cena entre semana";
+"mock.visit.dinner.location" = "Restaurante del centro";
+"mock.visit.dinner.notes" = "Probar el nuevo menú para niños";
+"mock.visit.event.title" = "Evento escolar";
+"mock.visit.event.location" = "Auditorio de la escuela";
+"mock.visit.event.notes" = "Presentación anual de la escuela";
+"mock.visit.recurring.title" = "Recogida semanal";
+"mock.visit.recurring.location" = "Escuela";
+"mock.visit.recurring.notes" = "Recogida regular de la escuela";
+
+// MARK: - Other
+"recurring" = "Recurrente";
 "journal_mood_stressed" = "Estresado";

@@ -31,6 +31,8 @@
 "save" = "Save";
 "delete" = "Delete";
 "edit" = "Edit";
+"done" = "Done";
+"settings" = "Settings";
 
 // MARK: - Features
 "home_greeting" = "Hello, dad";
@@ -48,4 +50,122 @@
 "journal_new_entry" = "New Entry";
 "journal_mood_happy" = "Happy";
 "journal_mood_neutral" = "Neutral";
+
+// MARK: - Agenda Module
+"agenda.title" = "Agenda";
+"agenda.view_mode" = "View Mode";
+"agenda.sync_calendar" = "Sync with Calendar";
+"agenda.go_to_today" = "Go to Today";
+"agenda.add_visit" = "Add Visit";
+"agenda.no_visits_today.title" = "No visits today";
+"agenda.no_visits_today.subtitle" = "Tap + to schedule a visit";
+"agenda.permission.title" = "Calendar Access";
+"agenda.permission.message" = "Enable calendar access in Settings to sync your visits.";
+
+// MARK: - Visit Types
+"visit.type.weekend" = "Weekend";
+"visit.type.dinner" = "Dinner";
+"visit.type.event" = "Event";
+"visit.type.general" = "General";
+"visit.type.emergency" = "Emergency";
+
+// MARK: - Calendar Views
+"calendar.view.month" = "Month";
+"calendar.view.week" = "Week";
+"calendar.view.list" = "List";
+"calendar.previous_month" = "Previous month";
+"calendar.next_month" = "Next month";
+"calendar.today" = "Today";
+"calendar.selected" = "Selected";
+"calendar.visits_count" = "%d visits";
+
+// MARK: - Visit Forms
+"new_visit.title" = "New Visit";
+"edit_visit.title" = "Edit Visit";
+"delete_visit" = "Delete Visit";
+"visit.title.placeholder" = "Visit title";
+"visit.basic_info" = "Basic Information";
+"visit.date_time" = "Date & Time";
+"visit.start_date" = "Start Date";
+"visit.end_date" = "End Date";
+"visit.date_validation" = "End date must be after start date";
+"visit.type" = "Visit Type";
+"visit.type_section" = "Visit Type";
+"visit.location" = "Location";
+"visit.location.placeholder" = "Location (optional)";
+"visit.reminders" = "Reminders";
+"visit.reminder" = "Reminder";
+"visit.reminder.footer" = "Get notified before your visit starts";
+"visit.recurrence" = "Recurrence";
+"visit.recurring" = "Recurring Visit";
+"visit.repeat" = "Repeat";
+"visit.recurrence.footer" = "This visit will repeat automatically";
+"visit.notes" = "Notes";
+"visit.notes.placeholder" = "Additional notes (optional)";
+
+// MARK: - Recurrence Rules
+"recurrence.daily" = "Daily";
+"recurrence.weekly" = "Weekly";
+"recurrence.biweekly" = "Bi-weekly";
+"recurrence.monthly" = "Monthly";
+
+// MARK: - Reminder Options
+"reminder.none" = "None";
+"reminder.at_time" = "At time of event";
+"reminder.5_minutes" = "5 minutes before";
+"reminder.15_minutes" = "15 minutes before";
+"reminder.30_minutes" = "30 minutes before";
+"reminder.1_hour" = "1 hour before";
+"reminder.2_hours" = "2 hours before";
+"reminder.1_day" = "1 day before";
+"reminder.minutes" = "%d minutes before";
+"reminder.hours" = "%d hours before";
+"select_reminder" = "Select Reminder";
+"select_recurrence" = "Select Recurrence";
+
+// MARK: - Visit Lists
+"visits.search.placeholder" = "Search visits...";
+"visits.empty.title" = "No visits scheduled";
+"visits.empty.subtitle" = "Tap + to add your first visit";
+"visits.empty.search.title" = "No visits found";
+"visits.empty.search.subtitle" = "Try a different search term";
+"visits.empty.filter.title" = "No visits match filter";
+"visits.empty.filter.subtitle" = "Try changing the filter";
+
+// MARK: - Filters
+"filter.all" = "All";
+"filter.upcoming" = "Upcoming";
+"filter.past" = "Past";
+
+// MARK: - Delete Confirmations
+"delete.visit.title" = "Delete Visit";
+"delete.visit.message" = "This action cannot be undone.";
+"delete.visit.warning" = "Deleting this visit will remove it from your calendar permanently.";
+
+// MARK: - Notifications
+"notification.visit.title" = "Visit Reminder";
+"notification.visit.body" = "Your visit '%@' starts in %d minutes";
+
+// MARK: - Repository Errors
+"agenda.error.visit_not_found" = "Visit not found";
+"agenda.error.permission_denied" = "Calendar permission denied";
+"agenda.error.eventkit_unavailable" = "EventKit not available";
+"agenda.error.sync_failed" = "Calendar sync failed";
+
+// MARK: - Mock Visit Data
+"mock.visit.weekend.title" = "Weekend with kids";
+"mock.visit.weekend.location" = "My apartment";
+"mock.visit.weekend.notes" = "Plan activities and prepare lunch";
+"mock.visit.dinner.title" = "Weekday dinner";
+"mock.visit.dinner.location" = "Downtown restaurant";
+"mock.visit.dinner.notes" = "Try the new kids menu";
+"mock.visit.event.title" = "School event";
+"mock.visit.event.location" = "School auditorium";
+"mock.visit.event.notes" = "Annual school presentation";
+"mock.visit.recurring.title" = "Weekly pickup";
+"mock.visit.recurring.location" = "School";
+"mock.visit.recurring.notes" = "Regular school pickup";
+
+// MARK: - Other
+"recurring" = "Recurring";
 "journal_mood_stressed" = "Stressed";
