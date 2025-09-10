@@ -8,6 +8,9 @@
 import Foundation
 import SwiftData
 
+// Import AgendaVisitType from AgendaTypes
+// Note: Make sure AgendaTypes.swift is accessible in the module
+
 // MARK: - Visit Model
 @Model
 final class Visit {
@@ -17,20 +20,12 @@ final class Visit {
     var endDate: Date
     var location: String?
     var notes: String?
-    var type: VisitType
+    var type: AgendaVisitType
     var isCompleted: Bool
     var createdAt: Date
     var updatedAt: Date
     
-    enum VisitType: String, Codable, CaseIterable {
-        case weekend = "weekend"
-        case dinner = "dinner"
-        case vacation = "vacation"
-        case event = "event"
-        case other = "other"
-    }
-    
-    init(title: String, startDate: Date, endDate: Date, type: VisitType, location: String? = nil, notes: String? = nil) {
+    init(title: String, startDate: Date, endDate: Date, type: AgendaVisitType, location: String? = nil, notes: String? = nil) {
         self.id = UUID()
         self.title = title
         self.startDate = startDate

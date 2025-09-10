@@ -12,7 +12,7 @@ import Foundation
 
 @MainActor
 class InMemoryAgendaRepository: ObservableObject, AgendaRepositoryProtocol {
-    @Published private var visits: [Visit] = []
+    @Published private var visits: [AgendaVisit] = []
     @Published var permissionStatus: AgendaPermissionStatus = .notDetermined
     
     private let userDefaults = UserDefaults.standard
@@ -25,30 +25,43 @@ class InMemoryAgendaRepository: ObservableObject, AgendaRepositoryProtocol {
     
     // MARK: - Repository Protocol Implementation
     
-    func getAllVisits() async throws -> [Visit] {
-        return visits.sorted { $0.startDate < $1.startDate }
+    func getVisits(for dateRange: DateInterval?) async throws -> [AgendaVisit] {
+        let allVisits = visits.sorted { $0.startDate < $1.startDate }
+        
+        guard let range = dateRange else {
+            return allVisits
+        }
+        
+        return allVisits.filter { visit in
+            visit.startDate >= range.start && visit.startDate <= range.end
+        }
     }
     
-    func getVisits(for date: Date) async throws -> [Visit] {
+    // Convenience method for getting all visits
+    func getAllVisits() async throws -> [AgendaVisit] {
+        return try await getVisits(for: nil)
+    }
+    
+    func getVisits(for date: Date) async throws -> [AgendaVisit] {
         let calendar = Calendar.current
         return visits.filter { visit in
             calendar.isDate(visit.startDate, inSameDayAs: date)
         }.sorted { $0.startDate < $1.startDate }
     }
     
-    func getVisits(from startDate: Date, to endDate: Date) async throws -> [Visit] {
+    func getVisits(from startDate: Date, to endDate: Date) async throws -> [AgendaVisit] {
         return visits.filter { visit in
             visit.startDate >= startDate && visit.startDate <= endDate
         }.sorted { $0.startDate < $1.startDate }
     }
     
-    func createVisit(_ visit: Visit) async throws -> Visit {
+    func createVisit(_ visit: AgendaVisit) async throws -> AgendaVisit {
         visits.append(visit)
         saveVisits()
         return visit
     }
     
-    func updateVisit(_ visit: Visit) async throws -> Visit {
+    func updateVisit(_ visit: AgendaVisit) async throws -> AgendaVisit {
         if let index = visits.firstIndex(where: { $0.id == visit.id }) {
             visits[index] = visit
             saveVisits()
@@ -58,16 +71,20 @@ class InMemoryAgendaRepository: ObservableObject, AgendaRepositoryProtocol {
         }
     }
     
-    func deleteVisit(id: UUID) async throws {
+    func deleteVisit(withId id: UUID) async throws {
         visits.removeAll { $0.id == id }
         saveVisits()
     }
     
-    func requestCalendarPermission() async -> Bool {
+    func requestCalendarPermission() async throws {
         // Simulate permission request
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
-        permissionStatus = .authorized
-        return true
+        do {
+            try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
+            permissionStatus = .authorized
+        } catch {
+            permissionStatus = .denied
+            throw AgendaError.permissionDenied
+        }
     }
     
     func syncWithEventKit() async throws {
@@ -80,7 +97,7 @@ class InMemoryAgendaRepository: ObservableObject, AgendaRepositoryProtocol {
     
     private func loadStoredVisits() {
         guard let data = userDefaults.data(forKey: visitsKey),
-              let decodedVisits = try? JSONDecoder().decode([Visit].self, from: data) else {
+              let decodedVisits = try? JSONDecoder().decode([AgendaVisit].self, from: data) else {
             return
         }
         visits = decodedVisits
@@ -101,7 +118,7 @@ class InMemoryAgendaRepository: ObservableObject, AgendaRepositoryProtocol {
         let today = Date()
         
         let mockVisits = [
-            Visit(
+            AgendaVisit(
                 title: NSLocalizedString("mock.visit.weekend.title", comment: "Weekend with kids"),
                 startDate: calendar.date(byAdding: .day, value: 2, to: today) ?? today,
                 endDate: calendar.date(byAdding: .hour, value: 8, to: calendar.date(byAdding: .day, value: 2, to: today) ?? today) ?? today,
@@ -110,25 +127,25 @@ class InMemoryAgendaRepository: ObservableObject, AgendaRepositoryProtocol {
                 reminderMinutes: 60,
                 visitType: .weekend
             ),
-            Visit(
+            AgendaVisit(
                 title: NSLocalizedString("mock.visit.dinner.title", comment: "Weekday dinner"),
                 startDate: calendar.date(byAdding: .day, value: 5, to: today) ?? today,
                 endDate: calendar.date(byAdding: .hour, value: 2, to: calendar.date(byAdding: .day, value: 5, to: today) ?? today) ?? today,
                 location: NSLocalizedString("mock.visit.dinner.location", comment: "Downtown restaurant"),
                 notes: NSLocalizedString("mock.visit.dinner.notes", comment: "Try the new kids menu"),
                 reminderMinutes: 30,
-                visitType: .dinner
+                visitType: .school
             ),
-            Visit(
+            AgendaVisit(
                 title: NSLocalizedString("mock.visit.event.title", comment: "School event"),
                 startDate: calendar.date(byAdding: .day, value: 8, to: today) ?? today,
                 endDate: calendar.date(byAdding: .hour, value: 3, to: calendar.date(byAdding: .day, value: 8, to: today) ?? today) ?? today,
                 location: NSLocalizedString("mock.visit.event.location", comment: "School auditorium"),
                 notes: NSLocalizedString("mock.visit.event.notes", comment: "Annual school presentation"),
                 reminderMinutes: 120,
-                visitType: .event
+                visitType: .general
             ),
-            Visit(
+            AgendaVisit(
                 title: NSLocalizedString("mock.visit.recurring.title", comment: "Weekly pickup"),
                 startDate: calendar.date(byAdding: .day, value: 1, to: today) ?? today,
                 endDate: calendar.date(byAdding: .hour, value: 1, to: calendar.date(byAdding: .day, value: 1, to: today) ?? today) ?? today,
@@ -143,26 +160,5 @@ class InMemoryAgendaRepository: ObservableObject, AgendaRepositoryProtocol {
         
         visits = mockVisits
         saveVisits()
-    }
-}
-
-// MARK: - Repository Errors
-enum AgendaError: LocalizedError {
-    case visitNotFound
-    case permissionDenied
-    case eventKitNotAvailable
-    case syncFailed
-    
-    var errorDescription: String? {
-        switch self {
-        case .visitNotFound:
-            return NSLocalizedString("agenda.error.visit_not_found", comment: "Visit not found")
-        case .permissionDenied:
-            return NSLocalizedString("agenda.error.permission_denied", comment: "Calendar permission denied")
-        case .eventKitNotAvailable:
-            return NSLocalizedString("agenda.error.eventkit_unavailable", comment: "EventKit not available")
-        case .syncFailed:
-            return NSLocalizedString("agenda.error.sync_failed", comment: "Calendar sync failed")
-        }
     }
 }

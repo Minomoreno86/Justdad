@@ -14,11 +14,11 @@ struct AgendaView: View {
     
     @State private var selectedDate = Date()
     @State private var currentViewMode: CalendarViewMode = .month
-    @State private var visits: [Visit] = []
+    @State private var visits: [AgendaVisit] = []
     @State private var isLoading = false
     @State private var showingNewVisitSheet = false
     @State private var showingPermissionAlert = false
-    @State private var selectedVisit: Visit?
+    @State private var selectedVisit: AgendaVisit?
     
     var body: some View {
         NavigationStack {
@@ -74,11 +74,11 @@ struct AgendaView: View {
             }
             .sheet(item: $selectedVisit) { visit in
                 EditVisitView(
-                    visit: visit,
+                    visit: AgendaMapping.convertToVisit(from: visit),
                     onSave: { updatedVisit in
                         Task { await updateVisit(updatedVisit) }
                     },
-                    onDelete: {
+                    onDelete: { _ in
                         Task { await deleteVisit(visit) }
                         selectedVisit = nil
                     }
@@ -195,11 +195,10 @@ struct AgendaView: View {
             
             if visitsForSelectedDate.isEmpty {
                 EmptyStateView(
-                    systemImage: "calendar.badge.plus",
                     title: NSLocalizedString("agenda.no_visits_today.title", comment: "No visits today"),
-                    subtitle: NSLocalizedString("agenda.no_visits_today.subtitle", comment: "Tap + to schedule a visit"),
-                    buttonTitle: NSLocalizedString("agenda.add_visit", comment: "Add Visit"),
-                    buttonAction: { showingNewVisitSheet = true }
+                    message: NSLocalizedString("agenda.no_visits_today.subtitle", comment: "Tap + to schedule a visit"),
+                    actionTitle: NSLocalizedString("agenda.add_visit", comment: "Add Visit"),
+                    action: { showingNewVisitSheet = true }
                 )
             } else {
                 LazyVStack(spacing: 8) {
@@ -283,7 +282,7 @@ struct AgendaView: View {
     
     // MARK: - Computed Properties
     
-    private var visitsForSelectedDate: [Visit] {
+    private var visitsForSelectedDate: [AgendaVisit] {
         visits.filter { visit in
             Calendar.current.isDate(visit.startDate, inSameDayAs: selectedDate)
         }.sorted { $0.startDate < $1.startDate }
@@ -369,7 +368,7 @@ struct AgendaView: View {
         }
     }
     
-    private func createVisit(_ visit: Visit) async {
+    private func createVisit(_ visit: AgendaVisit) async {
         do {
             _ = try await agendaRepository.createVisit(visit)
             await loadVisits()
@@ -379,7 +378,7 @@ struct AgendaView: View {
         }
     }
     
-    private func updateVisit(_ visit: Visit) async {
+    private func updateVisit(_ visit: AgendaVisit) async {
         do {
             _ = try await agendaRepository.updateVisit(visit)
             await loadVisits()
@@ -389,9 +388,9 @@ struct AgendaView: View {
         }
     }
     
-    private func deleteVisit(_ visit: Visit) async {
+    private func deleteVisit(_ visit: AgendaVisit) async {
         do {
-            try await agendaRepository.deleteVisit(id: visit.id)
+            try await agendaRepository.deleteVisit(withId: visit.id)
             await loadVisits()
         } catch {
             print("❌ Failed to delete visit: \(error)")
@@ -400,14 +399,14 @@ struct AgendaView: View {
     
     private func requestCalendarPermission() {
         Task {
-            let granted = await agendaRepository.requestCalendarPermission()
-            if !granted {
+            do {
+                try await agendaRepository.requestCalendarPermission()
+                try await agendaRepository.syncWithEventKit()
+                await loadVisits()
+            } catch {
                 await MainActor.run {
                     showingPermissionAlert = true
                 }
-            } else {
-                await agendaRepository.syncWithEventKit()
-                await loadVisits()
             }
         }
     }
@@ -416,7 +415,7 @@ struct AgendaView: View {
 // MARK: - Compact Visit Row
 
 struct CompactVisitRow: View {
-    let visit: Visit
+    let visit: AgendaVisit
     let onTap: () -> Void
     
     var body: some View {

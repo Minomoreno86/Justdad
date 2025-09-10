@@ -1,322 +1,289 @@
-//
-//  EditVisitView.swift
-//  JustDad - Edit Visit Form
-//
-//  Edit existing visits with validation and delete functionality
-//
-
 import SwiftUI
+import SwiftData
 
 struct EditVisitView: View {
+    @StateObject private var viewModel = EditVisitViewModel()
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     
-    let visit: Visit
-    let onSave: (Visit) -> Void
-    let onDelete: () -> Void
+    // Optional CoreData Visit for editing existing visits
+    private let coreDataVisit: Visit?
     
-    @State private var title: String
-    @State private var startDate: Date
-    @State private var endDate: Date
-    @State private var location: String
-    @State private var notes: String
-    @State private var visitType: VisitType
-    @State private var reminderMinutes: Int?
-    @State private var isRecurring: Bool
-    @State private var recurrenceRule: RecurrenceRule?
+    // Callbacks for visit operations
+    let onSave: ((AgendaVisit) -> Void)?
+    let onDelete: ((UUID) -> Void)?
     
-    @State private var showingDeleteAlert = false
-    @State private var showingReminderPicker = false
-    @State private var showingRecurrencePicker = false
-    
-    private var isValid: Bool {
-        !title.isEmpty && startDate < endDate
-    }
-    
-    init(visit: Visit, onSave: @escaping (Visit) -> Void, onDelete: @escaping () -> Void) {
-        self.visit = visit
+    // MARK: - Initializers
+    init(
+        visit: Visit? = nil,
+        onSave: ((AgendaVisit) -> Void)? = nil,
+        onDelete: ((UUID) -> Void)? = nil
+    ) {
+        self.coreDataVisit = visit
         self.onSave = onSave
         self.onDelete = onDelete
-        
-        // Initialize state from visit
-        self._title = State(initialValue: visit.title)
-        self._startDate = State(initialValue: visit.startDate)
-        self._endDate = State(initialValue: visit.endDate)
-        self._location = State(initialValue: visit.location ?? "")
-        self._notes = State(initialValue: visit.notes ?? "")
-        self._visitType = State(initialValue: visit.visitType)
-        self._reminderMinutes = State(initialValue: visit.reminderMinutes)
-        self._isRecurring = State(initialValue: visit.isRecurring)
-        self._recurrenceRule = State(initialValue: visit.recurrenceRule)
     }
     
     var body: some View {
         NavigationStack {
-            Form {
-                // Basic Information Section
-                basicInformationSection
-                
-                // Date and Time Section
-                dateTimeSection
-                
-                // Visit Type Section
-                visitTypeSection
-                
-                // Location Section
-                locationSection
-                
-                // Reminders Section
-                remindersSection
-                
-                // Recurrence Section
-                recurrenceSection
-                
-                // Notes Section
-                notesSection
-                
-                // Delete Section
-                deleteSection
+            ScrollView {
+                VStack(spacing: 20) {
+                    titleSection
+                    datesSection
+                    locationSection
+                    visitTypeSection
+                    recurrenceSection
+                    reminderSection
+                    notesSection
+                }
+                .padding()
             }
-            .navigationTitle(NSLocalizedString("edit_visit.title", comment: "Edit Visit"))
+            .navigationTitle(viewModel.isEditing ? "Editar Visita" : "Nueva Visita")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(NSLocalizedString("cancel", comment: "Cancel")) {
+                    Button("Cancelar") {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(NSLocalizedString("save", comment: "Save")) {
+                    Button("Guardar") {
                         saveVisit()
                     }
-                    .disabled(!isValid)
+                    .disabled(!viewModel.canSave)
                     .fontWeight(.semibold)
                 }
-            }
-            .alert(
-                NSLocalizedString("delete.visit.title", comment: "Delete Visit"),
-                isPresented: $showingDeleteAlert
-            ) {
-                Button(NSLocalizedString("cancel", comment: "Cancel"), role: .cancel) { }
-                Button(NSLocalizedString("delete", comment: "Delete"), role: .destructive) {
-                    onDelete()
+                
+                if viewModel.isEditing {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Eliminar", role: .destructive) {
+                            deleteVisit()
+                        }
+                    }
                 }
+            }
+            .alert("Error", isPresented: $viewModel.showingAlert) {
+                Button("OK") { }
             } message: {
-                Text(NSLocalizedString("delete.visit.message", comment: "This action cannot be undone. The visit will be removed from your calendar."))
+                Text(viewModel.alertMessage)
             }
-        }
-    }
-    
-    // MARK: - Form Sections
-    
-    private var basicInformationSection: some View {
-        Section {
-            TextField(
-                NSLocalizedString("visit.title.placeholder", comment: "Visit title"),
-                text: $title
-            )
-            .autocorrectionDisabled()
-        } header: {
-            Text(NSLocalizedString("visit.basic_info", comment: "Basic Information"))
-        }
-    }
-    
-    private var dateTimeSection: some View {
-        Section {
-            DatePicker(
-                NSLocalizedString("visit.start_date", comment: "Start Date"),
-                selection: $startDate,
-                displayedComponents: [.date, .hourAndMinute]
-            )
-            .onChange(of: startDate) { newValue in
-                // Auto-adjust end date if it's before start date
-                if endDate <= newValue {
-                    endDate = Calendar.current.date(byAdding: .hour, value: 2, to: newValue) ?? newValue
+            .onAppear {
+                if let coreDataVisit = coreDataVisit {
+                    viewModel.loadVisit(AgendaVisit(coreData: coreDataVisit))
                 }
             }
+        }
+    }
+    
+    // MARK: - View Sections
+    private var titleSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Título")
+                .font(.headline)
             
-            DatePicker(
-                NSLocalizedString("visit.end_date", comment: "End Date"),
-                selection: $endDate,
-                in: startDate...,
-                displayedComponents: [.date, .hourAndMinute]
-            )
-        } header: {
-            Text(NSLocalizedString("visit.date_time", comment: "Date & Time"))
-        } footer: {
-            if startDate >= endDate {
-                Label(
-                    NSLocalizedString("visit.date_validation", comment: "End date must be after start date"),
-                    systemImage: "exclamationmark.triangle"
-                )
-                .foregroundColor(.red)
-                .font(.caption)
-            }
+            TextField("Título de la visita", text: $viewModel.title)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
     
-    private var visitTypeSection: some View {
-        Section {
-            Picker(NSLocalizedString("visit.type", comment: "Visit Type"), selection: $visitType) {
-                ForEach(VisitType.allCases, id: \.self) { type in
-                    Label(type.displayName, systemImage: type.systemIcon)
-                        .tag(type)
+    private var datesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Fechas y Horarios")
+                .font(.headline)
+            
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("Inicio")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    DatePicker("", selection: $viewModel.startDate)
+                        .datePickerStyle(CompactDatePickerStyle())
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .leading) {
+                    Text("Fin")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    DatePicker("", selection: $viewModel.endDate)
+                        .datePickerStyle(CompactDatePickerStyle())
                 }
             }
-            .pickerStyle(MenuPickerStyle())
-        } header: {
-            Text(NSLocalizedString("visit.type_section", comment: "Visit Type"))
         }
     }
     
     private var locationSection: some View {
-        Section {
-            TextField(
-                NSLocalizedString("visit.location.placeholder", comment: "Location (optional)"),
-                text: $location
-            )
-            .autocorrectionDisabled()
-        } header: {
-            Text(NSLocalizedString("visit.location", comment: "Location"))
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Ubicación")
+                .font(.headline)
+            
+            TextField("Ubicación (opcional)", text: $viewModel.location)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
     
-    private var remindersSection: some View {
-        Section {
-            HStack {
-                Text(NSLocalizedString("visit.reminder", comment: "Reminder"))
-                
-                Spacer()
-                
-                Button(reminderText) {
-                    showingReminderPicker = true
+    private var visitTypeSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Tipo de Visita")
+                .font(.headline)
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
+                ForEach(AgendaVisitType.allCases, id: \.self) { type in
+                    VisitTypeButton(
+                        type: type,
+                        isSelected: viewModel.visitType == type
+                    ) {
+                        viewModel.visitType = type
+                    }
                 }
-                .foregroundColor(.blue)
             }
-        } header: {
-            Text(NSLocalizedString("visit.reminders", comment: "Reminders"))
-        } footer: {
-            Text(NSLocalizedString("visit.reminder.footer", comment: "Get notified before your visit starts"))
-        }
-        .sheet(isPresented: $showingReminderPicker) {
-            ReminderPickerView(selectedMinutes: $reminderMinutes)
         }
     }
     
     private var recurrenceSection: some View {
-        Section {
-            Toggle(NSLocalizedString("visit.recurring", comment: "Recurring Visit"), isOn: $isRecurring)
+        VStack(alignment: .leading, spacing: 12) {
+            Toggle("Repetir visita", isOn: $viewModel.isRecurring)
+                .font(.headline)
             
-            if isRecurring {
-                HStack {
-                    Text(NSLocalizedString("visit.repeat", comment: "Repeat"))
+            if viewModel.isRecurring {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Frecuencia")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                     
-                    Spacer()
-                    
-                    Button(recurrenceText) {
-                        showingRecurrencePicker = true
+                    Picker("Frecuencia", selection: $viewModel.recurrenceRule.frequency) {
+                        ForEach(RecurrenceRule.Frequency.allCases, id: \.self) { frequency in
+                            if frequency != .none {
+                                Text(frequency.displayName).tag(frequency)
+                            }
+                        }
                     }
-                    .foregroundColor(.blue)
+                    .pickerStyle(SegmentedPickerStyle())
                 }
             }
-        } header: {
-            Text(NSLocalizedString("visit.recurrence", comment: "Recurrence"))
-        } footer: {
-            if isRecurring {
-                Text(NSLocalizedString("visit.recurrence.footer", comment: "This visit will repeat automatically"))
-            }
         }
-        .sheet(isPresented: $showingRecurrencePicker) {
-            RecurrencePickerView(selectedRule: $recurrenceRule)
+    }
+    
+    private var reminderSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Recordatorio")
+                .font(.headline)
+            
+            Picker("Recordatorio", selection: $viewModel.reminderMinutes) {
+                ForEach(viewModel.reminderOptions, id: \.self) { minutes in
+                    Text(viewModel.reminderDisplayText(for: minutes)).tag(minutes)
+                }
+            }
+            .pickerStyle(MenuPickerStyle())
         }
     }
     
     private var notesSection: some View {
-        Section {
-            TextField(
-                NSLocalizedString("visit.notes.placeholder", comment: "Additional notes (optional)"),
-                text: $notes,
-                axis: .vertical
-            )
-            .lineLimit(3...6)
-        } header: {
-            Text(NSLocalizedString("visit.notes", comment: "Notes"))
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Notas")
+                .font(.headline)
+            
+            TextField("Notas adicionales (opcional)", text: $viewModel.notes, axis: .vertical)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .lineLimit(3...6)
         }
-    }
-    
-    private var deleteSection: some View {
-        Section {
-            Button(action: { showingDeleteAlert = true }) {
-                Label(NSLocalizedString("delete_visit", comment: "Delete Visit"), systemImage: "trash")
-                    .foregroundColor(.red)
-            }
-        } footer: {
-            Text(NSLocalizedString("delete.visit.warning", comment: "Deleting this visit will remove it from your calendar permanently."))
-                .foregroundColor(.secondary)
-        }
-    }
-    
-    // MARK: - Computed Properties
-    
-    private var reminderText: String {
-        guard let reminderMinutes = reminderMinutes else {
-            return NSLocalizedString("reminder.none", comment: "None")
-        }
-        
-        if reminderMinutes < 60 {
-            let format = NSLocalizedString("reminder.minutes", comment: "%d minutes before")
-            return String(format: format, reminderMinutes)
-        } else {
-            let hours = reminderMinutes / 60
-            let format = NSLocalizedString("reminder.hours", comment: "%d hours before")
-            return String(format: format, hours)
-        }
-    }
-    
-    private var recurrenceText: String {
-        recurrenceRule?.displayName ?? NSLocalizedString("recurrence.weekly", comment: "Weekly")
     }
     
     // MARK: - Actions
-    
     private func saveVisit() {
-        let updatedVisit = Visit(
-            id: visit.id,
-            title: title,
-            startDate: startDate,
-            endDate: endDate,
-            location: location.isEmpty ? nil : location,
-            notes: notes.isEmpty ? nil : notes,
-            reminderMinutes: reminderMinutes,
-            isRecurring: isRecurring,
-            recurrenceRule: isRecurring ? (recurrenceRule ?? .weekly) : nil,
-            visitType: visitType,
-            eventKitIdentifier: visit.eventKitIdentifier
-        )
+        let agendaVisit = viewModel.createAgendaVisit()
         
-        onSave(updatedVisit)
-        dismiss()
+        // Call the provided save callback
+        onSave?(agendaVisit)
+        
+        // For CoreData integration, create/update Visit entity
+        if let coreDataVisit = coreDataVisit {
+            // Update existing Visit
+            updateCoreDataVisit(coreDataVisit, with: agendaVisit)
+        } else {
+            // Create new Visit
+            let newVisit = Visit(from: agendaVisit)
+            modelContext.insert(newVisit)
+        }
+        
+        // Save context
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            viewModel.showAlert(message: "Error al guardar: \(error.localizedDescription)")
+        }
+    }
+    
+    private func deleteVisit() {
+        guard let coreDataVisit = coreDataVisit else { return }
+        
+        // Call the provided delete callback
+        onDelete?(coreDataVisit.id)
+        
+        // Delete from CoreData
+        modelContext.delete(coreDataVisit)
+        
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            viewModel.showAlert(message: "Error al eliminar: \(error.localizedDescription)")
+        }
+    }
+    
+    private func updateCoreDataVisit(_ visit: Visit, with agendaVisit: AgendaVisit) {
+        visit.title = agendaVisit.title
+        visit.startDate = agendaVisit.startDate
+        visit.endDate = agendaVisit.endDate
+        visit.location = agendaVisit.location
+        visit.notes = agendaVisit.notes
+        
+        // Direct mapping - no conversion needed anymore!
+        visit.type = agendaVisit.visitType
+        
+        visit.updatedAt = Date()
+    }
+}
+
+// MARK: - Supporting Views
+struct VisitTypeButton: View {
+    let type: AgendaVisitType
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: type.systemIcon)
+                    .font(.title2)
+                    .foregroundColor(isSelected ? .white : Color(type.color))
+                
+                Text(type.displayName)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(isSelected ? .white : .primary)
+            }
+            .frame(height: 60)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color(type.color) : Color.gray.opacity(0.1))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color(type.color), lineWidth: isSelected ? 0 : 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
 // MARK: - Preview
-
 #Preview {
-    EditVisitView(
-        visit: Visit(
-            title: "Weekend with kids",
-            startDate: Date(),
-            endDate: Calendar.current.date(byAdding: .hour, value: 8, to: Date()) ?? Date(),
-            location: "My place",
-            notes: "Fun day planned",
-            reminderMinutes: 60,
-            visitType: .weekend
-        ),
-        onSave: { visit in
-            print("Saving visit: \(visit.title)")
-        },
-        onDelete: {
-            print("Deleting visit")
-        }
-    )
+    EditVisitView()
 }

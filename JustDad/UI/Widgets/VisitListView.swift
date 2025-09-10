@@ -6,17 +6,18 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct VisitListView: View {
-    let visits: [Visit]
-    let onVisitTap: (Visit) -> Void
-    let onEditVisit: (Visit) -> Void
-    let onDeleteVisit: (Visit) -> Void
+    let visits: [AgendaVisit]
+    let onVisitTap: (AgendaVisit) -> Void
+    let onEditVisit: (AgendaVisit) -> Void
+    let onDeleteVisit: (AgendaVisit) -> Void
     
     @State private var searchText = ""
     @State private var selectedFilter: VisitTypeFilter = .all
     
-    private var filteredVisits: [Visit] {
+    private var filteredVisits: [AgendaVisit] {
         var filtered = visits
         
         // Apply search filter
@@ -80,7 +81,7 @@ struct VisitListView: View {
                 }
             }
             .padding(12)
-            .background(Color(.systemGray6))
+            .background(Color(UIColor.systemGray6))
             .cornerRadius(10)
             
             // Filter Pills
@@ -124,54 +125,75 @@ struct VisitListView: View {
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "calendar.badge.exclamationmark")
-                .font(.system(size: 48))
+                .font(.system(size: 60))
                 .foregroundColor(.secondary)
             
-            Text(emptyStateTitle)
-                .font(.headline)
-                .multilineTextAlignment(.center)
-            
-            Text(emptyStateSubtitle)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 8) {
+                Text(NSLocalizedString("visits.empty.title", comment: "No visits found"))
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                Text(getEmptyStateMessage())
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
-    private var emptyStateTitle: String {
+    private func getEmptyStateMessage() -> String {
         if !searchText.isEmpty {
-            return NSLocalizedString("visits.empty.search.title", comment: "No visits found")
+            return String(format: NSLocalizedString("visits.empty.search", comment: "No visits match '%@'"), searchText)
         } else if selectedFilter != .all {
-            return NSLocalizedString("visits.empty.filter.title", comment: "No visits match filter")
+            return NSLocalizedString("visits.empty.filter", comment: "No visits match the selected filter")
         } else {
-            return NSLocalizedString("visits.empty.title", comment: "No visits scheduled")
+            return NSLocalizedString("visits.empty.default", comment: "Start by creating your first visit")
         }
     }
+}
+
+// MARK: - Filter Pill
+
+struct FilterPill: View {
+    let filter: VisitTypeFilter
+    let isSelected: Bool
+    let action: () -> Void
     
-    private var emptyStateSubtitle: String {
-        if !searchText.isEmpty {
-            return NSLocalizedString("visits.empty.search.subtitle", comment: "Try a different search term")
-        } else if selectedFilter != .all {
-            return NSLocalizedString("visits.empty.filter.subtitle", comment: "Try changing the filter")
-        } else {
-            return NSLocalizedString("visits.empty.subtitle", comment: "Tap + to add your first visit")
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: filter.systemIcon)
+                    .font(.caption)
+                
+                Text(filter.displayName)
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                isSelected ? Color.blue : Color(UIColor.systemGray5)
+            )
+            .foregroundColor(isSelected ? .white : .primary)
+            .cornerRadius(16)
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
 // MARK: - Visit Type Filter
 
-enum VisitTypeFilter: CaseIterable, Equatable {
+enum VisitTypeFilter: CaseIterable, Equatable, Hashable {
     case all
     case upcoming
     case past
-    case type(VisitType)
+    case type(AgendaVisitType)
     
     static var allCases: [VisitTypeFilter] {
         var cases: [VisitTypeFilter] = [.all, .upcoming, .past]
-        cases.append(contentsOf: VisitType.allCases.map { .type($0) })
+        cases.append(contentsOf: AgendaVisitType.allCases.map { .type($0) })
         return cases
     }
     
@@ -200,43 +222,26 @@ enum VisitTypeFilter: CaseIterable, Equatable {
             return visitType.systemIcon
         }
     }
-}
-
-// MARK: - Filter Pill
-
-struct FilterPill: View {
-    let filter: VisitTypeFilter
-    let isSelected: Bool
-    let onTap: () -> Void
     
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 4) {
-                Image(systemName: filter.systemIcon)
-                    .font(.caption)
-                
-                Text(filter.displayName)
-                    .font(.caption)
-                    .fontWeight(.medium)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                isSelected ? Color.blue : Color(.systemGray5)
-            )
-            .foregroundColor(
-                isSelected ? .white : .primary
-            )
-            .cornerRadius(16)
+    func hash(into hasher: inout Hasher) {
+        switch self {
+        case .all:
+            hasher.combine("all")
+        case .upcoming:
+            hasher.combine("upcoming")
+        case .past:
+            hasher.combine("past")
+        case .type(let visitType):
+            hasher.combine("type")
+            hasher.combine(visitType)
         }
-        .buttonStyle(PlainButtonStyle())
     }
 }
 
 // MARK: - Visit Row View
 
 struct VisitRowView: View {
-    let visit: Visit
+    let visit: AgendaVisit
     let onTap: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -260,88 +265,104 @@ struct VisitRowView: View {
                 
                 // Visit details
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(visit.title)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.leading)
-                    
-                    Text(formatDate(visit.startDate))
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
-                    
-                    Text(formatTimeRange(visit.startDate, visit.endDate))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    if let location = visit.location {
-                        Label(location, systemImage: "location")
+                    HStack {
+                        Text(visit.title)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                        
+                        Spacer()
+                        
+                        Text(formatDate(visit.startDate))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                     
-                    if visit.isRecurring {
-                        Label(
-                            visit.recurrenceRule?.displayName ?? NSLocalizedString("recurring", comment: "Recurring"),
-                            systemImage: "repeat"
-                        )
-                        .font(.caption2)
-                        .foregroundColor(.blue)
-                    }
-                }
-                
-                Spacer()
-                
-                // Action menu
-                Menu {
-                    Button(action: onEdit) {
-                        Label(NSLocalizedString("edit", comment: "Edit"), systemImage: "pencil")
+                    if let location = visit.location {
+                        HStack {
+                            Image(systemName: "location")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text(location)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                     
-                    Button(role: .destructive, action: { showingDeleteAlert = true }) {
-                        Label(NSLocalizedString("delete", comment: "Delete"), systemImage: "trash")
+                    if let notes = visit.notes, !notes.isEmpty {
+                        Text(notes)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
                     }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .foregroundColor(.secondary)
-                        .padding(8)
+                    
+                    // Tags
+                    HStack(spacing: 6) {
+                        if visit.isRecurring {
+                            Label("Recurring", systemImage: "repeat")
+                                .font(.caption2)
+                                .foregroundColor(.blue)
+                        }
+                        
+                        if visit.reminderMinutes != nil {
+                            Label("Reminder", systemImage: "bell")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                        }
+                        
+                        Spacer()
+                    }
                 }
-                .buttonStyle(PlainButtonStyle())
+                
+                // Action buttons
+                VStack(spacing: 8) {
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Button(action: { showingDeleteAlert = true }) {
+                        Image(systemName: "trash")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                }
             }
             .padding()
-            .background(Color(.systemBackground))
+            .background(Color(UIColor.systemBackground))
             .cornerRadius(12)
-            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
         .buttonStyle(PlainButtonStyle())
         .alert(
-            NSLocalizedString("delete.visit.title", comment: "Delete Visit"),
+            NSLocalizedString("alert.delete.title", comment: "Delete Visit"),
             isPresented: $showingDeleteAlert
         ) {
-            Button(NSLocalizedString("cancel", comment: "Cancel"), role: .cancel) { }
-            Button(NSLocalizedString("delete", comment: "Delete"), role: .destructive) {
+            Button(NSLocalizedString("alert.delete.cancel", comment: "Cancel"), role: .cancel) { }
+            Button(NSLocalizedString("alert.delete.confirm", comment: "Delete"), role: .destructive) {
                 onDelete()
             }
         } message: {
-            Text(NSLocalizedString("delete.visit.message", comment: "This action cannot be undone."))
+            Text(String(format: NSLocalizedString("alert.delete.message", comment: "Are you sure you want to delete '%@'?"), visit.title))
         }
     }
     
-    // MARK: - Date Formatting
-    
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter.string(from: date)
-    }
-    
-    private func formatTimeRange(_ startDate: Date, _ endDate: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        
-        let startTime = formatter.string(from: startDate)
-        let endTime = formatter.string(from: endDate)
-        
-        return "\(startTime) - \(endTime)"
+        if Calendar.current.isDateInToday(date) {
+            formatter.timeStyle = .short
+            return "Today " + formatter.string(from: date)
+        } else if Calendar.current.isDateInTomorrow(date) {
+            formatter.timeStyle = .short
+            return "Tomorrow " + formatter.string(from: date)
+        } else {
+            formatter.dateStyle = .short
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
     }
 }
 
@@ -350,18 +371,16 @@ struct VisitRowView: View {
 #Preview {
     VisitListView(
         visits: [
-            Visit(
-                title: "Weekend with kids",
+            AgendaVisit(
+                title: "Weekend visit",
                 startDate: Date(),
-                endDate: Calendar.current.date(byAdding: .hour, value: 8, to: Date()) ?? Date(),
-                location: "My place",
+                endDate: Calendar.current.date(byAdding: .hour, value: 2, to: Date()) ?? Date(),
                 visitType: .weekend
             ),
-            Visit(
-                title: "Dinner date",
+            AgendaVisit(
+                title: "Dinner",
                 startDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(),
                 endDate: Calendar.current.date(byAdding: .hour, value: 2, to: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()) ?? Date(),
-                location: "Restaurant",
                 visitType: .dinner
             )
         ],
@@ -369,4 +388,5 @@ struct VisitRowView: View {
         onEditVisit: { _ in },
         onDeleteVisit: { _ in }
     )
+    .padding()
 }

@@ -11,14 +11,14 @@ struct NewVisitView: View {
     @Environment(\.dismiss) private var dismiss
     
     let initialDate: Date
-    let onSave: (Visit) -> Void
+    let onSave: (AgendaVisit) -> Void
     
     @State private var title = ""
     @State private var startDate: Date
     @State private var endDate: Date
     @State private var location = ""
     @State private var notes = ""
-    @State private var visitType: VisitType = .general
+    @State private var visitType: AgendaVisitType = .general
     @State private var reminderMinutes: Int? = 30
     @State private var isRecurring = false
     @State private var recurrenceRule: RecurrenceRule? = nil
@@ -30,7 +30,7 @@ struct NewVisitView: View {
         !title.isEmpty && startDate < endDate
     }
     
-    init(initialDate: Date = Date(), onSave: @escaping (Visit) -> Void) {
+    init(initialDate: Date = Date(), onSave: @escaping (AgendaVisit) -> Void) {
         self.initialDate = initialDate
         self.onSave = onSave
         
@@ -134,7 +134,7 @@ struct NewVisitView: View {
     private var visitTypeSection: some View {
         Section {
             Picker(NSLocalizedString("visit.type", comment: "Visit Type"), selection: $visitType) {
-                ForEach(VisitType.allCases, id: \.self) { type in
+                ForEach(AgendaVisitType.allCases, id: \.self) { type in
                     Label(type.displayName, systemImage: type.systemIcon)
                         .tag(type)
                 }
@@ -244,7 +244,7 @@ struct NewVisitView: View {
     // MARK: - Actions
     
     private func saveVisit() {
-        let visit = Visit(
+        let visit = AgendaVisit(
             title: title,
             startDate: startDate,
             endDate: endDate,
@@ -322,18 +322,18 @@ struct RecurrencePickerView: View {
     var body: some View {
         NavigationStack {
             List {
-                ForEach(RecurrenceRule.allCases, id: \.self) { rule in
+                ForEach(RecurrenceRule.Frequency.allCases, id: \.self) { frequency in
                     Button(action: {
-                        selectedRule = rule
+                        selectedRule = RecurrenceRule(frequency: frequency)
                         dismiss()
                     }) {
                         HStack {
-                            Text(rule.displayName)
+                            Text(frequency.displayName)
                                 .foregroundColor(.primary)
                             
                             Spacer()
                             
-                            if selectedRule == rule {
+                            if selectedRule?.frequency == frequency {
                                 Image(systemName: "checkmark")
                                     .foregroundColor(.blue)
                             }
