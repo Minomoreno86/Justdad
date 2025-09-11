@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CommunityView: View {
     @StateObject private var router = NavigationRouter.shared
-    @State private var posts: [MockCommunityPost] = MockData.communityPosts
+    @State private var posts: [MockCommunityPost] = MockCommunityPost.samplePosts
     @State private var selectedCategory: String? = nil
     @State private var showingNewPost = false
     
@@ -147,7 +147,7 @@ struct CommunityPostCard: View {
                 }
                 
                 // Content
-                Text(post.content)
+                Text(post.text)
                     .font(.body)
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.leading)

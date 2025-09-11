@@ -12,7 +12,7 @@ struct JournalListView: View {
     @State private var searchText = ""
     
     private var entries: [MockJournalEntry] {
-        MockData.journal
+        MockJournalEntry.sampleEntries
     }
     
     private var filteredEntries: [MockJournalEntry] {
@@ -76,8 +76,11 @@ struct JournalEntryRow: View {
     private var moodEmoji: String {
         switch entry.mood {
         case .happy: return "😊"
+        case .sad: return "😢"
         case .neutral: return "😐"
-        case .stressed: return "😔"
+        case .excited: return "🎉"
+        case .stressed: return "😰"
+        case .grateful: return "�"
         }
     }
     

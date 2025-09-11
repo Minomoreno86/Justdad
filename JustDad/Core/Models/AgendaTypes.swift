@@ -175,6 +175,8 @@ public enum AgendaPermissionStatus: String, Codable {
             return .denied
         case .authorized, .fullAccess:
             return .authorized
+        case .writeOnly:
+            return .authorized
         @unknown default:
             return .denied
         }
