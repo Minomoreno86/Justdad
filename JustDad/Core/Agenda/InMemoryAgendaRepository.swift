@@ -25,54 +25,49 @@ class InMemoryAgendaRepository: ObservableObject, AgendaRepositoryProtocol {
     
     // MARK: - Repository Protocol Implementation
     
-    func getVisits(for dateRange: DateInterval?) async throws -> [AgendaVisit] {
+    func getVisits(in dateRange: DateInterval) async throws -> [AgendaVisit] {
         let allVisits = visits.sorted { $0.startDate < $1.startDate }
         
-        guard let range = dateRange else {
-            return allVisits
-        }
-        
         return allVisits.filter { visit in
-            visit.startDate >= range.start && visit.startDate <= range.end
+            dateRange.contains(visit.startDate) || dateRange.contains(visit.endDate) ||
+            (visit.startDate <= dateRange.start && visit.endDate >= dateRange.end)
         }
-    }
-    
-    // Convenience method for getting all visits
-    func getAllVisits() async throws -> [AgendaVisit] {
-        return try await getVisits(for: nil)
-    }
-    
-    func getVisits(for date: Date) async throws -> [AgendaVisit] {
-        let calendar = Calendar.current
-        return visits.filter { visit in
-            calendar.isDate(visit.startDate, inSameDayAs: date)
-        }.sorted { $0.startDate < $1.startDate }
-    }
-    
-    func getVisits(from startDate: Date, to endDate: Date) async throws -> [AgendaVisit] {
-        return visits.filter { visit in
-            visit.startDate >= startDate && visit.startDate <= endDate
-        }.sorted { $0.startDate < $1.startDate }
     }
     
     func createVisit(_ visit: AgendaVisit) async throws -> AgendaVisit {
-        visits.append(visit)
+        // Since id is a let constant, we need to create a new visit with a new UUID
+        let newVisit = AgendaVisit(
+            id: UUID(),
+            title: visit.title,
+            startDate: visit.startDate,
+            endDate: visit.endDate,
+            location: visit.location,
+            notes: visit.notes,
+            reminderMinutes: visit.reminderMinutes,
+            isRecurring: visit.isRecurring,
+            recurrenceRule: visit.recurrenceRule,
+            visitType: visit.visitType,
+            eventKitIdentifier: visit.eventKitIdentifier
+        )
+        visits.append(newVisit)
+        saveVisits()
+        return newVisit
+    }
+    
+    func updateVisit(_ visit: AgendaVisit) async throws -> AgendaVisit {
+        guard let index = visits.firstIndex(where: { $0.id == visit.id }) else {
+            throw AgendaError.visitNotFound
+        }
+        visits[index] = visit
         saveVisits()
         return visit
     }
     
-    func updateVisit(_ visit: AgendaVisit) async throws -> AgendaVisit {
-        if let index = visits.firstIndex(where: { $0.id == visit.id }) {
-            visits[index] = visit
-            saveVisits()
-            return visit
-        } else {
+    func deleteVisit(_ visitId: UUID) async throws {
+        guard let index = visits.firstIndex(where: { $0.id == visitId }) else {
             throw AgendaError.visitNotFound
         }
-    }
-    
-    func deleteVisit(withId id: UUID) async throws {
-        visits.removeAll { $0.id == id }
+        visits.remove(at: index)
         saveVisits()
     }
     

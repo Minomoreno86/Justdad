@@ -8,40 +8,6 @@
 import Foundation
 import SwiftData
 
-// Import AgendaVisitType from AgendaTypes module
-// AgendaVisitType should be accessible from the same module
-// Make sure AgendaTypes.swift is compiled before this file
-
-// MARK: - Container Manager Extension
-extension ModelContainer {
-    @MainActor
-    static func createJustDadContainer() throws -> ModelContainer {
-        let schema = Schema([
-            Visit.self,
-            VisitAttachment.self,
-            EmergencyContact.self,
-            AppSettings.self,
-            FinancialEntry.self,
-            EmotionalEntry.self,
-            DiaryEntry.self,
-            DiaryAttachment.self,
-            CommunityPost.self,
-            UserPreferences.self
-        ])
-        
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            allowsSave: true
-        )
-        
-        return try ModelContainer(
-            for: schema,
-            configurations: [modelConfiguration]
-        )
-    }
-}
-
 // MARK: - Visit Model
 @Model
 final class Visit {
@@ -51,65 +17,37 @@ final class Visit {
     var endDate: Date
     var location: String?
     var notes: String?
-    var type: String // Temporary: Store as String until AgendaVisitType import is resolved
+    var typeRawValue: String // Store enum as string to avoid type conflicts
     var isCompleted: Bool
-    var reminderMinutes: Int? // Add reminder functionality
+    var reminderMinutes: Int?
     var isRecurring: Bool
-    var recurrencePattern: String? // JSON string for recurrence rules
-    var eventKitIdentifier: String? // For calendar integration
+    var eventKitIdentifier: String?
     var createdAt: Date
     var updatedAt: Date
     
-    // Relationships
-    @Relationship(deleteRule: .cascade) var attachments: [VisitAttachment] = []
-    
-    init(title: String, startDate: Date, endDate: Date, type: String, location: String? = nil, notes: String? = nil) {
+    init(title: String, startDate: Date, endDate: Date, typeRawValue: String, location: String? = nil, notes: String? = nil, reminderMinutes: Int? = nil, isRecurring: Bool = false) {
         self.id = UUID()
         self.title = title
         self.startDate = startDate
         self.endDate = endDate
-        self.type = type
+        self.typeRawValue = typeRawValue
         self.location = location
         self.notes = notes
-        self.isCompleted = false
-        self.reminderMinutes = nil
-        self.isRecurring = false
-        self.recurrencePattern = nil
+        self.reminderMinutes = reminderMinutes
+        self.isRecurring = isRecurring
         self.eventKitIdentifier = nil
+        self.isCompleted = false
         self.createdAt = Date()
         self.updatedAt = Date()
     }
     
-    // MARK: - Computed Properties
-    var formattedDuration: String {
-        let duration = endDate.timeIntervalSince(startDate)
-        let hours = Int(duration) / 3600
-        let minutes = Int(duration.truncatingRemainder(dividingBy: 3600)) / 60
-        
-        if hours > 0 {
-            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
-        } else {
-            return "\(minutes)m"
+    // Convenience computed property for type conversion
+    var visitType: String {
+        get { typeRawValue }
+        set { 
+            typeRawValue = newValue
+            updatedAt = Date()
         }
-    }
-    
-    var isUpcoming: Bool {
-        return startDate > Date()
-    }
-    
-    var isPast: Bool {
-        return endDate < Date()
-    }
-    
-    // MARK: - Methods
-    func markAsCompleted() {
-        isCompleted = true
-        updatedAt = Date()
-    }
-    
-    func updateReminderTime(_ minutes: Int?) {
-        reminderMinutes = minutes
-        updatedAt = Date()
     }
 }
 
@@ -124,6 +62,8 @@ final class FinancialEntry {
     var notes: String?
     var receiptImagePath: String? // Path to encrypted image file
     var isRecurring: Bool
+    var recurringInterval: Int? // Days between recurrences
+    var tags: [String]
     var createdAt: Date
     var updatedAt: Date
     
@@ -151,17 +91,53 @@ final class FinancialEntry {
             case .other: return "Otros"
             }
         }
+        
+        var icon: String {
+            switch self {
+            case .education: return "book.fill"
+            case .health: return "cross.case.fill"
+            case .food: return "fork.knife"
+            case .clothing: return "tshirt.fill"
+            case .transportation: return "car.fill"
+            case .entertainment: return "gamecontroller.fill"
+            case .gifts: return "gift.fill"
+            case .childSupport: return "house.fill"
+            case .other: return "ellipsis.circle.fill"
+            }
+        }
+        
+        var color: String {
+            switch self {
+            case .education: return "blue"
+            case .health: return "red"
+            case .food: return "green"
+            case .clothing: return "purple"
+            case .transportation: return "orange"
+            case .entertainment: return "pink"
+            case .gifts: return "yellow"
+            case .childSupport: return "brown"
+            case .other: return "gray"
+            }
+        }
     }
     
-    init(title: String, amount: Decimal, category: ExpenseCategory, date: Date = Date(), notes: String? = nil) {
+    init(title: String, amount: Decimal, category: ExpenseCategory, date: Date = Date(), notes: String? = nil, isRecurring: Bool = false) {
         self.id = UUID()
         self.title = title
         self.amount = amount
         self.category = category
         self.date = date
         self.notes = notes
-        self.isRecurring = false
+        self.receiptImagePath = nil
+        self.isRecurring = isRecurring
+        self.recurringInterval = nil
+        self.tags = []
         self.createdAt = Date()
+        self.updatedAt = Date()
+    }
+    
+    // Update method to mark as modified
+    func updateTimestamp() {
         self.updatedAt = Date()
     }
 }
@@ -177,6 +153,8 @@ final class EmotionalEntry {
     var stressLevel: Int // 1-10
     var sleepQuality: Int // 1-10
     var tags: [String] // e.g., "children", "work", "exercise"
+    var triggers: [String] // What caused this mood
+    var coping: [String] // What helped or could help
     var createdAt: Date
     
     enum MoodLevel: Int, Codable, CaseIterable {
@@ -205,6 +183,16 @@ final class EmotionalEntry {
             case .excellent: return "Muy Feliz"
             }
         }
+        
+        var color: String {
+            switch self {
+            case .veryLow: return "red"
+            case .low: return "orange"
+            case .neutral: return "yellow"
+            case .good: return "lightgreen"
+            case .excellent: return "green"
+            }
+        }
     }
     
     init(mood: MoodLevel, note: String? = nil, date: Date = Date()) {
@@ -216,7 +204,21 @@ final class EmotionalEntry {
         self.stressLevel = 5
         self.sleepQuality = 5
         self.tags = []
+        self.triggers = []
+        self.coping = []
         self.createdAt = Date()
+    }
+    
+    // Weekly mood average calculation helper
+    static func weeklyAverage(entries: [EmotionalEntry]) -> Double {
+        guard !entries.isEmpty else { return 0.0 }
+        let sum = entries.reduce(0) { $0 + $1.mood.rawValue }
+        return Double(sum) / Double(entries.count)
+    }
+    
+    // Check if this is a positive mood entry
+    var isPositive: Bool {
+        return mood.rawValue >= 4
     }
 }
 
@@ -230,6 +232,10 @@ final class DiaryEntry {
     var date: Date
     var attachments: [DiaryAttachment]
     var isEncrypted: Bool
+    var encryptionKey: String? // Reference to keychain key
+    var tags: [String]
+    var location: String? // Optional location where entry was written
+    var wordCount: Int
     var createdAt: Date
     var updatedAt: Date
     
@@ -241,8 +247,39 @@ final class DiaryEntry {
         self.date = date
         self.attachments = []
         self.isEncrypted = true
+        self.encryptionKey = nil // Will be set when encrypting
+        self.tags = []
+        self.location = nil
+        self.wordCount = content.split(separator: " ").count
         self.createdAt = Date()
         self.updatedAt = Date()
+    }
+    
+    // Update content and recalculate word count
+    func updateContent(_ newContent: String) {
+        self.content = newContent
+        self.wordCount = newContent.split(separator: " ").count
+        self.updatedAt = Date()
+    }
+    
+    // Add attachment
+    func addAttachment(_ attachment: DiaryAttachment) {
+        attachments.append(attachment)
+        updatedAt = Date()
+    }
+    
+    // Check if entry has any media attachments
+    var hasMediaAttachments: Bool {
+        return attachments.contains { $0.type == .photo || $0.type == .audio }
+    }
+    
+    // Get preview text (first 100 characters)
+    var preview: String {
+        if content.count <= 100 {
+            return content
+        }
+        let index = content.index(content.startIndex, offsetBy: 100)
+        return String(content[..<index]) + "..."
     }
 }
 
@@ -337,109 +374,5 @@ struct ReminderSettings: Codable {
         self.emotionalCheckIn = emotionalCheckIn
         self.communityUpdates = communityUpdates
         self.backupReminders = backupReminders
-    }
-}
-
-// MARK: - Visit Attachment Model
-@Model
-final class VisitAttachment {
-    var id: UUID
-    var fileName: String
-    var filePath: String
-    var fileType: DiaryAttachment.AttachmentType
-    var fileSize: Int64
-    var isEncrypted: Bool
-    var createdAt: Date
-    
-    // Relationship back to Visit
-    var visit: Visit?
-    
-    init(fileName: String, filePath: String, fileType: DiaryAttachment.AttachmentType, fileSize: Int64 = 0) {
-        self.id = UUID()
-        self.fileName = fileName
-        self.filePath = filePath
-        self.fileType = fileType
-        self.fileSize = fileSize
-        self.isEncrypted = true
-        self.createdAt = Date()
-    }
-}
-
-// MARK: - Emergency Contact Model
-@Model
-final class EmergencyContact {
-    var id: UUID
-    var name: String
-    var phoneNumber: String
-    var relationship: String // "lawyer", "therapist", "family", "friend"
-    var isActive: Bool
-    var priority: Int // 1 = highest priority
-    var notes: String?
-    var createdAt: Date
-    var updatedAt: Date
-    
-    init(name: String, phoneNumber: String, relationship: String, priority: Int = 1) {
-        self.id = UUID()
-        self.name = name
-        self.phoneNumber = phoneNumber
-        self.relationship = relationship
-        self.isActive = true
-        self.priority = priority
-        self.notes = nil
-        self.createdAt = Date()
-        self.updatedAt = Date()
-    }
-    
-    // MARK: - Computed Properties
-    var formattedPhoneNumber: String {
-        let cleanNumber = phoneNumber.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
-        if cleanNumber.count == 10 {
-            let areaCode = String(cleanNumber.prefix(3))
-            let exchange = String(cleanNumber.dropFirst(3).prefix(3))
-            let number = String(cleanNumber.suffix(4))
-            return "(\(areaCode)) \(exchange)-\(number)"
-        }
-        return phoneNumber
-    }
-}
-
-// MARK: - App Settings Model
-@Model
-final class AppSettings {
-    var id: UUID
-    var biometricAuthEnabled: Bool
-    var notificationsEnabled: Bool
-    var autoBackupEnabled: Bool
-    var lastBackupDate: Date?
-    var dataExportFormat: String // "PDF", "CSV", "JSON"
-    var reminderTime: Date // Default time for daily reminders
-    var themeMode: String // "auto", "light", "dark"
-    var language: String
-    var privacyMode: Bool // Extra security features
-    var updatedAt: Date
-    
-    init() {
-        self.id = UUID()
-        self.biometricAuthEnabled = true
-        self.notificationsEnabled = true
-        self.autoBackupEnabled = false
-        self.lastBackupDate = nil
-        self.dataExportFormat = "PDF"
-        self.reminderTime = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: Date()) ?? Date()
-        self.themeMode = "auto"
-        self.language = "es"
-        self.privacyMode = true
-        self.updatedAt = Date()
-    }
-    
-    // MARK: - Methods
-    func updateBackupDate() {
-        lastBackupDate = Date()
-        updatedAt = Date()
-    }
-    
-    func toggleBiometricAuth() {
-        biometricAuthEnabled.toggle()
-        updatedAt = Date()
     }
 }

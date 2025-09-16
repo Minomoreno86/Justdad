@@ -110,10 +110,19 @@ struct VisitListView: View {
                 ForEach(filteredVisits) { visit in
                     VisitRowView(
                         visit: visit,
+                        isEditMode: false,
+                        isSelected: false,
                         onTap: { onVisitTap(visit) },
-                        onEdit: { onEditVisit(visit) },
-                        onDelete: { onDeleteVisit(visit) }
+                        onLongPress: { /* No implementation needed for basic list */ }
                     )
+                    .contextMenu {
+                        Button("Edit", systemImage: "pencil") {
+                            onEditVisit(visit)
+                        }
+                        Button("Delete", systemImage: "trash", role: .destructive) {
+                            onDeleteVisit(visit)
+                        }
+                    }
                 }
             }
             .padding()
@@ -234,134 +243,6 @@ enum VisitTypeFilter: CaseIterable, Equatable, Hashable {
         case .type(let visitType):
             hasher.combine("type")
             hasher.combine(visitType)
-        }
-    }
-}
-
-// MARK: - Visit Row View
-
-struct VisitRowView: View {
-    let visit: AgendaVisit
-    let onTap: () -> Void
-    let onEdit: () -> Void
-    let onDelete: () -> Void
-    
-    @State private var showingDeleteAlert = false
-    
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                // Visit type indicator
-                VStack {
-                    Image(systemName: visit.visitType.systemIcon)
-                        .font(.title3)
-                        .foregroundColor(Color(visit.visitType.color))
-                        .frame(width: 30, height: 30)
-                        .background(Color(visit.visitType.color).opacity(0.1))
-                        .cornerRadius(8)
-                    
-                    Spacer()
-                }
-                
-                // Visit details
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(visit.title)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                        
-                        Spacer()
-                        
-                        Text(formatDate(visit.startDate))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    if let location = visit.location {
-                        HStack {
-                            Image(systemName: "location")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text(location)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
-                    }
-                    
-                    if let notes = visit.notes, !notes.isEmpty {
-                        Text(notes)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                    }
-                    
-                    // Tags
-                    HStack(spacing: 6) {
-                        if visit.isRecurring {
-                            Label("Recurring", systemImage: "repeat")
-                                .font(.caption2)
-                                .foregroundColor(.blue)
-                        }
-                        
-                        if visit.reminderMinutes != nil {
-                            Label("Reminder", systemImage: "bell")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
-                        }
-                        
-                        Spacer()
-                    }
-                }
-                
-                // Action buttons
-                VStack(spacing: 8) {
-                    Button(action: onEdit) {
-                        Image(systemName: "pencil")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                    }
-                    
-                    Button(action: { showingDeleteAlert = true }) {
-                        Image(systemName: "trash")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
-                }
-            }
-            .padding()
-            .background(Color(UIColor.systemBackground))
-            .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .alert(
-            NSLocalizedString("alert.delete.title", comment: "Delete Visit"),
-            isPresented: $showingDeleteAlert
-        ) {
-            Button(NSLocalizedString("alert.delete.cancel", comment: "Cancel"), role: .cancel) { }
-            Button(NSLocalizedString("alert.delete.confirm", comment: "Delete"), role: .destructive) {
-                onDelete()
-            }
-        } message: {
-            Text(String(format: NSLocalizedString("alert.delete.message", comment: "Are you sure you want to delete '%@'?"), visit.title))
-        }
-    }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        if Calendar.current.isDateInToday(date) {
-            formatter.timeStyle = .short
-            return "Today " + formatter.string(from: date)
-        } else if Calendar.current.isDateInTomorrow(date) {
-            formatter.timeStyle = .short
-            return "Tomorrow " + formatter.string(from: date)
-        } else {
-            formatter.dateStyle = .short
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
         }
     }
 }

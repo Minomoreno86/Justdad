@@ -209,10 +209,10 @@ public enum AgendaError: Error {
 
 // MARK: - Repository Protocol
 public protocol AgendaRepositoryProtocol {
-    func getVisits(for dateRange: DateInterval?) async throws -> [AgendaVisit]
+    func getVisits(in dateRange: DateInterval) async throws -> [AgendaVisit]
     func createVisit(_ visit: AgendaVisit) async throws -> AgendaVisit
     func updateVisit(_ visit: AgendaVisit) async throws -> AgendaVisit
-    func deleteVisit(withId id: UUID) async throws
+    func deleteVisit(_ id: UUID) async throws
     func requestCalendarPermission() async throws
     var permissionStatus: AgendaPermissionStatus { get }
 }

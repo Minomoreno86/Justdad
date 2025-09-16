@@ -51,9 +51,5 @@ class AppState: ObservableObject {
 }
 
 // MARK: - Supporting Types
-struct EmergencyContact: Identifiable, Codable {
-    var id = UUID()
-    var name: String
-    var phoneNumber: String
-    var relationship: String
-}
+// NOTE: EmergencyContact is now defined as a SwiftData @Model in CoreDataModels.swift
+// This provides persistent storage with CoreData integration

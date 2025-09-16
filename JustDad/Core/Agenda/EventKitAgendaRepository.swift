@@ -34,37 +34,41 @@ final class EventKitAgendaRepository: ObservableObject, AgendaRepositoryProtocol
 
     // MARK: - AgendaRepositoryProtocol (AgendaVisit API)
 
-    /// Devuelve visitas para un rango. Si `dateRange == nil`, usa ±1 año.
-    func getVisits(for dateRange: DateInterval?) async throws -> [AgendaVisit] {
+    /// Devuelve visitas para un rango.
+    func getVisits(in dateRange: DateInterval) async throws -> [AgendaVisit] {
         if !permissionStatus.isAuthorized {
-            let range = dateRange ?? DateInterval(
-                start: calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date(),
-                end:   calendar.date(byAdding: .year, value:  1, to: Date()) ?? Date()
-            )
-            return memoryStore.filter { range.contains($0.startDate) || range.contains($0.endDate) }
+            return memoryStore.filter { 
+                dateRange.contains($0.startDate) || dateRange.contains($0.endDate) ||
+                ($0.startDate <= dateRange.start && $0.endDate >= dateRange.end)
+            }
         }
 
-        let range = dateRange ?? DateInterval(
-            start: calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date(),
-            end:   calendar.date(byAdding: .year, value:  1, to: Date()) ?? Date()
-        )
-        cachedRange = range
-
-        return await withCheckedContinuation { cont in
-            let pred = eventStore.predicateForEvents(withStart: range.start, end: range.end, calendars: nil)
-            let events = eventStore.events(matching: pred)
-            let visits = events.map(Self.mapToAgendaVisit(_:))
-            subject.send(visits)
-            cont.resume(returning: visits)
-        }
+        cachedRange = dateRange
+        let predicate = eventStore.predicateForEvents(withStart: dateRange.start, end: dateRange.end, calendars: nil)
+        let events = eventStore.events(matching: predicate)
+        
+        return events.map(Self.mapToAgendaVisit(_:))
     }
-
+    
     func createVisit(_ visit: AgendaVisit) async throws -> AgendaVisit {
         if !permissionStatus.isAuthorized {
-            memoryStore.insert(visit, at: 0)
-            return visit
+            let newVisit = AgendaVisit(
+                id: UUID(),
+                title: visit.title,
+                startDate: visit.startDate,
+                endDate: visit.endDate,
+                location: visit.location,
+                notes: visit.notes,
+                reminderMinutes: visit.reminderMinutes,
+                isRecurring: visit.isRecurring,
+                recurrenceRule: visit.recurrenceRule,
+                visitType: visit.visitType,
+                eventKitIdentifier: visit.eventKitIdentifier
+            )
+            memoryStore.append(newVisit)
+            return newVisit
         }
-
+        
         let event = EKEvent(eventStore: eventStore)
         Self.fill(event: event, from: visit)
         event.calendar = eventStore.defaultCalendarForNewEvents
@@ -89,14 +93,7 @@ final class EventKitAgendaRepository: ObservableObject, AgendaRepositoryProtocol
             if notificationPermissionGranted, let minutes = visit.reminderMinutes {
                 await scheduleNotification(for: saved, minutesBefore: minutes)
             }
-
-            // Actualiza cache si aplica
-            if let range = cachedRange,
-               event.startDate >= range.start && event.startDate <= range.end {
-                var current = subject.value
-                current.insert(Self.mapToAgendaVisit(event), at: 0)
-                subject.send(current)
-            }
+            
             return saved
         } catch {
             // Fallback in-memory si falla EventKit
@@ -104,58 +101,55 @@ final class EventKitAgendaRepository: ObservableObject, AgendaRepositoryProtocol
             return visit
         }
     }
-
+    
     func updateVisit(_ visit: AgendaVisit) async throws -> AgendaVisit {
         if !permissionStatus.isAuthorized {
-            if let idx = memoryStore.firstIndex(where: { $0.id == visit.id }) {
-                memoryStore[idx] = visit
-            } else {
-                memoryStore.insert(visit, at: 0)
+            guard let index = memoryStore.firstIndex(where: { $0.id == visit.id }) else {
+                throw AgendaError.visitNotFound
             }
+            memoryStore[index] = visit
             return visit
         }
-
-        if let ekId = visit.eventKitIdentifier,
-           let event = eventStore.event(withIdentifier: ekId) {
-            Self.fill(event: event, from: visit)
-
-            // Alarms: elimina todas y re-agrega si procede (sin force unwrap)
-            if let alarms = event.alarms {
-                for alarm in alarms { 
-                    event.removeAlarm(alarm) 
-                }
-            }
-            if let minutes = visit.reminderMinutes {
-                let alarm = EKAlarm(relativeOffset: TimeInterval(-minutes * 60))
-                event.addAlarm(alarm)
-            }
-
-            // Recurrencia
-            if let rule = visit.recurrenceRule, visit.isRecurring, rule.frequency != .none {
-                event.recurrenceRules = [createRecurrenceRule(rule)]
-            } else {
-                event.recurrenceRules = nil
-            }
-
-            do {
-                try eventStore.save(event, span: .thisEvent)
-                reloadCachedRange()
-                return visit
-            } catch {
-                return visit // silencioso en MVP
-            }
-        } else {
-            // No existe en EK → crear
-            return try await createVisit(visit)
+        
+        guard let eventId = visit.eventKitIdentifier,
+              let event = eventStore.event(withIdentifier: eventId) else {
+            throw AgendaError.visitNotFound
         }
-    }
+        
+        Self.fill(event: event, from: visit)
 
-    func deleteVisit(withId id: UUID) async throws {
+        // Alarms: elimina todas y re-agrega si procede
+        if let alarms = event.alarms {
+            for alarm in alarms { 
+                event.removeAlarm(alarm) 
+            }
+        }
+        if let minutes = visit.reminderMinutes {
+            let alarm = EKAlarm(relativeOffset: TimeInterval(-minutes * 60))
+            event.addAlarm(alarm)
+        }
+
+        // Recurrencia
+        if let rule = visit.recurrenceRule, visit.isRecurring, rule.frequency != .none {
+            event.recurrenceRules = [createRecurrenceRule(rule)]
+        } else {
+            event.recurrenceRules = nil
+        }
+        
+        try eventStore.save(event, span: .thisEvent)
+        reloadCachedRange()
+        return visit
+    }
+    
+    func deleteVisit(_ visitId: UUID) async throws {
         if !permissionStatus.isAuthorized {
-            memoryStore.removeAll { $0.id == id }
+            guard let index = memoryStore.firstIndex(where: { $0.id == visitId }) else {
+                throw AgendaError.visitNotFound
+            }
+            memoryStore.remove(at: index)
             return
         }
-
+        
         let range = cachedRange ?? DateInterval(
             start: calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date(),
             end:   calendar.date(byAdding: .year, value:  1, to: Date()) ?? Date()
@@ -164,19 +158,19 @@ final class EventKitAgendaRepository: ObservableObject, AgendaRepositoryProtocol
         let events = eventStore.events(matching: pred)
 
         // Heurística: buscamos por identifier mapeado desde la cache actual
-        if let match = events.first(where: { Self.mapToAgendaVisit($0).id == id }),
+        if let match = events.first(where: { Self.mapToAgendaVisit($0).id == visitId }),
            let ekId = match.eventIdentifier,
            let event = eventStore.event(withIdentifier: ekId) {
             do {
                 try eventStore.remove(event, span: .thisEvent)
-                UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id.uuidString])
+                UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [visitId.uuidString])
                 reloadCachedRange()
             } catch {
                 // Ignorar en MVP
             }
         } else {
             // Si no se encontró, elimina de memoria por si estuviera en fallback
-            memoryStore.removeAll { $0.id == id }
+            memoryStore.removeAll { $0.id == visitId }
         }
     }
 
@@ -299,6 +293,6 @@ final class EventKitAgendaRepository: ObservableObject, AgendaRepositoryProtocol
 
     private func reloadCachedRange() {
         guard let range = cachedRange else { return }
-        Task { _ = try? await getVisits(for: range) }
+        Task { _ = try? await getVisits(in: range) }
     }
 }

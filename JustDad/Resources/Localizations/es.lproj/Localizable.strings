@@ -169,3 +169,14 @@
 // MARK: - Other
 "recurring" = "Recurrente";
 "journal_mood_stressed" = "Estresado";
+
+// MARK: - Agenda
+"Agenda" = "Agenda";
+"No visits this day" = "No hay visitas hoy";
+"New Visit" = "Nueva Visita";
+"Title" = "Título";
+"Start" = "Inicio";
+"End" = "Fin";
+"Location" = "Ubicación";
+"Save" = "Guardar";
+"Cancel" = "Cancelar";

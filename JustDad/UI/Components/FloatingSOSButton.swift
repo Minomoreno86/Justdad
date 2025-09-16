@@ -1,15 +1,19 @@
 //
 //  FloatingSOSButton.swift
-//  JustDad - Floating SOS emergency button
+//  JustDad - SuperDesign SOS Button
 //
-//  Emergency help button that floats over content
+//  Enhanced SOS Button with SuperDesign
+//  Created by Jorge Vasquez rodriguez on 15/9/25.
 //
 
 import SwiftUI
 
 struct FloatingSOSButton: View {
     let action: () -> Void
-    @State private var isPressed = false
+    
+    @State private var isPulsing = false
+    @State private var scale: CGFloat = 1.0
+    @State private var rotation: Double = 0
     
     var body: some View {
         VStack {
@@ -17,49 +21,102 @@ struct FloatingSOSButton: View {
             HStack {
                 Spacer()
                 
-                Button(action: action) {
+                Button(action: {
+                    performSOSAction()
+                }) {
                     ZStack {
+                        // Pulsing background effect
                         Circle()
-                            .fill(Color.red)
+                            .fill(
+                                RadialGradient(
+                                    colors: [
+                                        Color.red.opacity(0.3),
+                                        Color.red.opacity(0.1)
+                                    ],
+                                    center: .center,
+                                    startRadius: 10,
+                                    endRadius: 40
+                                )
+                            )
+                            .frame(width: 80, height: 80)
+                            .scaleEffect(isPulsing ? 1.2 : 1.0)
+                            .opacity(isPulsing ? 0.6 : 0.8)
+                            .animation(
+                                Animation
+                                    .easeInOut(duration: 1.5)
+                                    .repeatForever(autoreverses: true),
+                                value: isPulsing
+                            )
+                        
+                        // Main button
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.red,
+                                        Color.red.opacity(0.8)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                             .frame(width: 60, height: 60)
-                            .scaleEffect(isPressed ? 0.95 : 1.0)
-                            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                            .shadow(
+                                color: Color.red.opacity(0.4),
+                                radius: 12,
+                                x: 0,
+                                y: 6
+                            )
+                            .scaleEffect(scale)
+                            .rotationEffect(.degrees(rotation))
                         
                         VStack(spacing: 2) {
                             Text("SOS")
                                 .font(.caption.weight(.bold))
                                 .foregroundColor(.white)
+                                .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
                             
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.caption)
                                 .foregroundColor(.white)
+                                .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
                         }
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
-                .scaleEffect(isPressed ? 0.95 : 1.0)
-                .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        isPressed = pressing
-                    }
-                }, perform: {})
+                .onAppear {
+                    isPulsing = true
+                }
                 .padding(.trailing, 20)
-                .padding(.bottom, 100) // Above tab bar
+                .padding(.bottom, 100) // Space for tab bar
             }
         }
+        .allowsHitTesting(true)
         .accessibilityLabel("Emergency SOS")
-        .accessibilityHint("Tap for emergency help and resources")
-        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Double tap for emergency assistance")
     }
-}
-
-#Preview {
-    ZStack {
-        Color.gray.opacity(0.1)
-            .ignoresSafeArea()
+    
+    private func performSOSAction() {
+        // Stop pulsing temporarily
+        isPulsing = false
         
-        FloatingSOSButton {
-            print("SOS button tapped")
+        // Urgent animation
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+            scale = 0.8
+            rotation += 360
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                scale = 1.0
+            }
+            
+            // Resume pulsing after action
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isPulsing = true
+            }
+            
+            action()
         }
     }
 }

@@ -15,7 +15,7 @@ extension AgendaVisit {
             reminderMinutes: nil,               // TODO: add when exists in CD
             isRecurring: false,                 // TODO
             recurrenceRule: nil,                // TODO
-            visitType: v.type,                  // Direct mapping - no conversion needed!
+            visitType: AgendaVisitType(rawValue: v.type) ?? .general,  // Convert String to enum
             eventKitIdentifier: nil             // TODO
         )
     }
@@ -29,7 +29,7 @@ extension Visit {
             title: av.title,
             startDate: av.startDate,
             endDate: av.endDate,
-            type: av.visitType,                 // Direct mapping - no conversion needed!
+            type: av.visitType.rawValue,        // Convert enum to String
             location: av.location,
             notes: av.notes
         )
@@ -62,7 +62,7 @@ struct AgendaMapping {
             reminderMinutes: nil,               // TODO: add when exists in CD
             isRecurring: false,                 // TODO
             recurrenceRule: nil,                // TODO
-            visitType: visit.type,              // Direct mapping - no conversion needed!
+            visitType: AgendaVisitType(rawValue: visit.type) ?? .general,  // Convert String to enum
             eventKitIdentifier: nil             // TODO
         )
     }

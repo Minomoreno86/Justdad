@@ -70,7 +70,8 @@ struct MainTabView: View {
                     }
                     .tag(Tab.home)
                 
-                AgendaView()
+                // Agenda with repository injection
+                AgendaView(repo: InMemoryAgendaRepository())
                     .tabItem {
                         Image(systemName: Tab.agenda.icon)
                         Text(Tab.agenda.title)
@@ -98,9 +99,10 @@ struct MainTabView: View {
                     }
                     .tag(Tab.community)
             }
-            .accentColor(Palette.primary)
+            .accentColor(.blue) // Using SuperDesign primary color
+            .background(Color(red: 0.98, green: 0.98, blue: 1.0)) // Subtle background
             
-            // Floating SOS Button (only on Home tab)
+            // Enhanced Floating SOS Button (only on Home tab)
             if selectedTab == .home {
                 FloatingSOSButton {
                     showingSOSSheet = true

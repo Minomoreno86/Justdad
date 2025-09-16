@@ -1,850 +1,618 @@
-//
-//  AgendaView.swift
-//  JustDad - Professional Agenda View
-//
-//  Modern calendar and visit management with professional design and enhanced functionality
-//
-
 import SwiftUI
 
-// MARK: - Supporting Types
-enum VisitFilter: String, CaseIterable {
-    case all = "Todas"
-    case medical = "Médicas"
-    case school = "Colegio"
-    case personal = "Personal"
-    case work = "Trabajo"
-    
-    var icon: String {
-        switch self {
-        case .all: return "calendar"
-        case .medical: return "stethoscope"
-        case .school: return "graduationcap"
-        case .personal: return "heart.circle"
-        case .work: return "briefcase"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .all: return .blue
-        case .medical: return .red
-        case .school: return .orange
-        case .personal: return .green
-        case .work: return .purple
-        }
-    }
-}
-
-
-
-// MARK: - Mock Data Structure
-struct MockVisitAgenda: Identifiable {
-    let id = UUID()
-    let title: String
-    let date: Date
-    let time: String
-    let type: VisitFilter
-    let location: String?
-    let notes: String?
-}
-
-// MARK: - Main View
 struct AgendaView: View {
-    @State private var selectedDate = Date()
-    @State private var currentViewMode: CalendarViewMode = .month
-    @State private var visits: [MockVisitAgenda] = []
-    @State private var isLoading = false
-    @State private var showingNewVisitSheet = false
-    @State private var showingPermissionAlert = false
-    @State private var selectedVisit: MockVisitAgenda?
-    @State private var searchText = ""
-    @State private var showingFilters = false
-    @State private var selectedFilter: VisitFilter = .all
+    @StateObject private var vm: AgendaViewModel
+    @State private var showingNewVisit = false
+    @State private var showingEditVisit = false
+    @State private var selectedVisit: AgendaVisit?
+    @State private var viewMode: CalendarViewMode = .month
+    @State private var showingViewModeSheet = false
+    @State private var isEditMode = false
+    @State private var selectedVisits: Set<UUID> = []
+    @State private var showingBulkDeleteAlert = false
+    @State private var showingVisitDetail = false
     
-    // Animation state
-    @State private var animateHeader = false
-    
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                // Professional Background Gradient
-                LinearGradient(
-                    colors: [
-                        Color.clear,
-                        Color.blue.opacity(0.03),
-                        Color.purple.opacity(0.02)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-                
-                VStack(spacing: 0) {
-                    // Professional Header Section
-                    professionalHeader
-                    
-                    // Enhanced View Mode Picker
-                    enhancedViewModePicker
-                    
-                    // Search and Filter Bar
-                    searchAndFilterBar
-                    
-                    // Main Content with Enhanced Design
-                    ZStack {
-                        switch currentViewMode {
-                        case .month:
-                            enhancedMonthView
-                        case .week:
-                            enhancedWeekView
-                        case .list:
-                            enhancedListView
-                        }
-                    }
-                    .animation(.easeInOut(duration: 0.3), value: currentViewMode)
-                }
-            }
-            //.navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingNewVisitSheet) {
-                Text("Nueva Visita") // Placeholder
-            }
-            .sheet(item: $selectedVisit) { visit in
-                Text("Editar Visita: \(visit.title)") // Placeholder
-            }
-            .sheet(isPresented: $showingFilters) {
-                filtersSheet
-            }
-            .alert(
-                "Acceso al calendario",
-                isPresented: $showingPermissionAlert
-            ) {
-                Button("Configuración") {
-                    openSettings()
-                }
-                Button("Cancelar", role: .cancel) { }
-            } message: {
-                Text("Para sincronizar con tu calendario, necesitamos acceso a EventKit.")
-            }
-            .onAppear {
-                withAnimation(.easeOut(duration: 0.6).delay(0.1)) {
-                    animateHeader = true
-                }
-                loadMockData()
-            }
-        }
+    init(repo: AgendaRepositoryProtocol) {
+        _vm = StateObject(wrappedValue: AgendaViewModel(repo: repo))
     }
-    
-    // MARK: - Computed Properties
-    private var filteredVisits: [MockVisitAgenda] {
-        visits.filter { visit in
-            let matchesSearch = searchText.isEmpty || 
-                               visit.title.localizedCaseInsensitiveContains(searchText) ||
-                               (visit.location?.localizedCaseInsensitiveContains(searchText) ?? false)
-            
-            let matchesFilter = selectedFilter == .all || visit.type == selectedFilter
-            
-            return matchesSearch && matchesFilter
-        }
-    }
-    
-    private var visitsForSelectedDate: [MockVisitAgenda] {
-        filteredVisits.filter { visit in
-            Calendar.current.isDate(visit.date, inSameDayAs: selectedDate)
-        }
-    }
-    
-    private var startOfWeek: Date {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate)
-        return calendar.date(from: components) ?? selectedDate
-    }
-    
-    // MARK: - Date Formatters
-    private let monthYearFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        formatter.locale = Locale(identifier: "es_ES")
-        return formatter
-    }()
-    
-    private let weekFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM - d MMM"
-        formatter.locale = Locale(identifier: "es_ES")
-        return formatter
-    }()
-    
-    private let dayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, d MMMM"
-        formatter.locale = Locale(identifier: "es_ES")
-        return formatter
-    }()
-    
-    private let weekdayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE"
-        formatter.locale = Locale(identifier: "es_ES")
-        return formatter
-    }()
-    
-    // MARK: - Helper Functions
-    private func loadMockData() {
-        visits = [
-            MockVisitAgenda(
-                title: "Pediatra - Revisión mensual",
-                date: Date(),
-                time: "10:00",
-                type: .medical,
-                location: "Hospital San Juan",
-                notes: "Revisión rutinaria y vacunas"
-            ),
-            MockVisitAgenda(
-                title: "Reunión profesores",
-                date: Calendar.current.date(byAdding: .day, value: 2, to: Date()) ?? Date(),
-                time: "16:30",
-                type: .school,
-                location: "Colegio ABC",
-                notes: "Evaluación trimestral"
-            ),
-            MockVisitAgenda(
-                title: "Parque con papá",
-                date: Calendar.current.date(byAdding: .day, value: 5, to: Date()) ?? Date(),
-                time: "17:00",
-                type: .personal,
-                location: "Parque Central",
-                notes: "Tiempo de calidad juntos"
-            )
-        ]
-    }
-    
-    private func previousMonth() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .month, value: -1, to: selectedDate) ?? selectedDate
-        }
-    }
-    
-    private func nextMonth() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .month, value: 1, to: selectedDate) ?? selectedDate
-        }
-    }
-    
-    private func previousWeek() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: selectedDate) ?? selectedDate
-        }
-    }
-    
-    private func nextWeek() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: selectedDate) ?? selectedDate
-        }
-    }
-    
-    private func hasVisitsForDay(_ day: Int) -> Bool {
-        let components = Calendar.current.dateComponents([.year, .month], from: selectedDate)
-        guard let date = Calendar.current.date(from: DateComponents(year: components.year, month: components.month, day: day)) else {
-            return false
-        }
-        return visits.contains { Calendar.current.isDate($0.date, inSameDayAs: date) }
-    }
-    
-    private func requestCalendarPermission() {
-        showingPermissionAlert = true
-    }
-    
-    private func openSettings() {
-        #if canImport(UIKit)
-        guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(settingsURL)
-        #endif
-    }
-}
 
-// MARK: - Professional UI Components
-extension AgendaView {
+    var body: some View {
+        NavigationView {
+            ZStack {
+                VStack(spacing: 0) {
+                    // Professional Header with View Mode Selector
+                    headerView
+                    
+                    // Main Calendar Content with proper scroll behavior
+                    mainContentView
+                        .clipped() // Prevent content overflow
+                }
+                .background(Color(.systemGroupedBackground))
+                
+                // Floating Action Button - properly positioned
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        floatingActionButton
+                            .padding(.trailing, 20)
+                            .padding(.bottom, 20)
+                    }
+                }
+                .allowsHitTesting(true) // Ensure button remains tappable
+            }
+            .navigationBarHidden(true)
+        }
+        .sheet(isPresented: $showingNewVisit) {
+            NewVisitView { newVisit in
+                Task {
+                    await vm.addVisit(newVisit)
+                }
+            }
+        }
+        .sheet(isPresented: $showingEditVisit) {
+            if let visit = selectedVisit {
+                EditVisitView(
+                    visit: visit,
+                    onSave: { updatedVisit in
+                        Task {
+                            await vm.updateVisit(updatedVisit)
+                        }
+                        selectedVisit = nil
+                    },
+                    onDelete: { visitToDelete in
+                        Task {
+                            await vm.deleteVisit(visitToDelete.id)
+                        }
+                        selectedVisit = nil
+                    }
+                )
+            }
+        }
+        .actionSheet(isPresented: $showingViewModeSheet) {
+            ActionSheet(
+                title: Text("Vista del Calendario"),
+                buttons: [
+                    .default(Text("Vista Lista")) { viewMode = .list },
+                    .default(Text("Vista Semana")) { viewMode = .week },
+                    .default(Text("Vista Mes")) { viewMode = .month },
+                    .cancel(Text("Cancelar"))
+                ]
+            )
+        }
+        .alert("Eliminar Visitas", isPresented: $showingBulkDeleteAlert) {
+            Button("Cancelar", role: .cancel) { }
+            Button("Eliminar \(selectedVisits.count) visitas", role: .destructive) {
+                bulkDeleteVisits()
+            }
+        } message: {
+            Text("¿Estás seguro de que quieres eliminar \(selectedVisits.count) visitas? Esta acción no se puede deshacer.")
+        }
+        .sheet(isPresented: $showingVisitDetail) {
+            if let visit = selectedVisit {
+                VisitDetailView(visit: visit) { visit in
+                    editVisit(visit)
+                }
+            }
+        }
+    }
     
-    // MARK: - Professional Header
-    private var professionalHeader: some View {
+    // MARK: - Header View
+    private var headerView: some View {
         VStack(spacing: 16) {
+            // Top navigation bar
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Mi Agenda")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
+                    HStack {
+                        Text("Agenda")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        
+                        if isEditMode {
+                            Text("(\(selectedVisits.count) seleccionadas)")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                        }
+                    }
                     
-                    Text("Gestiona tus visitas y citas")
+                    Text(headerSubtitle)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
                 
                 Spacer()
                 
-                // Action Buttons
-                HStack(spacing: 12) {
-                    // Sync Button
-                    Button(action: requestCalendarPermission) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.title3)
-                            .foregroundColor(.blue)
-                            .frame(width: 44, height: 44)
-                            .background(
-                                Circle()
-                                    .fill(Color.blue.opacity(0.1))
-                            )
+                // Edit mode toggle
+                if viewMode == .list && !vm.allVisits.isEmpty {
+                    Button(isEditMode ? "Cancelar" : "Editar") {
+                        withAnimation {
+                            isEditMode.toggle()
+                            if !isEditMode {
+                                selectedVisits.removeAll()
+                            }
+                        }
                     }
-                    
-                    // Add Button
-                    Button(action: { showingNewVisitSheet = true }) {
-                        Image(systemName: "plus")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                            .background(
-                                Circle()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color.blue, Color.purple],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                            )
+                    .foregroundColor(.blue)
+                }
+                
+                // View mode selector
+                Button(action: { showingViewModeSheet = true }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: viewModeIcon)
+                        Text(viewModeText)
+                            .font(.footnote)
+                            .fontWeight(.medium)
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemBlue).opacity(0.1))
+                    .foregroundColor(.blue)
+                    .cornerRadius(8)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-        }
-        .scaleEffect(animateHeader ? 1.0 : 0.9)
-        .opacity(animateHeader ? 1.0 : 0.0)
-    }
-    
-    // MARK: - Enhanced View Mode Picker
-    private var enhancedViewModePicker: some View {
-        HStack(spacing: 0) {
-            ForEach(CalendarViewMode.allCases, id: \.self) { mode in
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        currentViewMode = mode
-                    }
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: mode.systemIcon)
-                            .font(.caption)
-                        Text(mode.displayName)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                    }
-                    .foregroundColor(currentViewMode == mode ? .white : .secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(
-                                currentViewMode == mode ?
-                                LinearGradient(
-                                    colors: [Color.blue, Color.purple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ) :
-                                LinearGradient(
-                                    colors: [Color.clear],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-        }
-        .padding(4)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.gray.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal, 20)
-        .padding(.vertical, 8)
-    }
-    
-    // MARK: - Search and Filter Bar
-    private var searchAndFilterBar: some View {
-        HStack(spacing: 12) {
-            // Search Field
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
-                
-                TextField("Buscar visitas...", text: $searchText)
-                    .textFieldStyle(PlainTextFieldStyle())
-                
-                if !searchText.isEmpty {
-                    Button(action: { searchText = "" }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.gray.opacity(0.1))
-            )
             
-            // Filter Button
-            Button(action: { showingFilters = true }) {
-                HStack(spacing: 4) {
-                    Image(systemName: selectedFilter.icon)
-                    if selectedFilter != .all {
-                        Text(selectedFilter.rawValue)
-                            .font(.caption)
-                    }
-                }
-                .foregroundColor(.blue)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(selectedFilter != .all ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(selectedFilter != .all ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 1)
-                        )
-                )
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 8)
-    }
-    
-    // MARK: - Enhanced Month View
-    private var enhancedMonthView: some View {
-        VStack(spacing: 20) {
-            // Professional Calendar Widget
-            professionalCalendar
-            
-            // Selected Date Visits Section
-            enhancedSelectedDateVisits
-            
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-    }
-    
-    // MARK: - Enhanced Week View
-    private var enhancedWeekView: some View {
-        VStack(spacing: 16) {
-            // Week Header
-            professionalWeekHeader
-            
-            // Week Grid
-            professionalWeekGrid
-            
-            // Selected Date Visits
-            enhancedSelectedDateVisits
-            
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-    }
-    
-    // MARK: - Enhanced List View
-    private var enhancedListView: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                if filteredVisits.isEmpty {
-                    // Professional Empty State
-                    VStack(spacing: 20) {
-                        Image(systemName: "calendar.badge.plus")
-                            .font(.system(size: 50))
-                            .foregroundColor(.blue.opacity(0.6))
-                        
-                        VStack(spacing: 8) {
-                            Text("No hay visitas")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(Color(UIColor.label))
-                            
-                            Text("Crea tu primera visita para comenzar a organizar tu agenda")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        Button(action: { showingNewVisitSheet = true }) {
-                            HStack {
-                                Image(systemName: "plus")
-                                Text("Crear nueva visita")
-                            }
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.blue, Color.purple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .clipShape(Capsule())
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 60)
-                    .padding(.horizontal, 40)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.gray.opacity(0.05))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .stroke(Color.gray.opacity(0.1), lineWidth: 1)
-                            )
-                    )
-                } else {
-                    ForEach(filteredVisits) { visit in
-                        ProfessionalVisitCard(visit: visit) {
-                            selectedVisit = visit
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 100) // Space for tab bar
-        }
-    }
-    
-    // MARK: - Professional Calendar
-    private var professionalCalendar: some View {
-        VStack(spacing: 16) {
-            // Month/Year Header
-            HStack {
-                Button(action: previousMonth) {
-                    Image(systemName: "chevron.left")
-                        .font(.title3)
-                        .foregroundColor(.blue)
-                }
-                
-                Spacer()
-                
-                Text(monthYearFormatter.string(from: selectedDate))
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(Color(UIColor.label))
-                
-                Spacer()
-                
-                Button(action: nextMonth) {
-                    Image(systemName: "chevron.right")
-                        .font(.title3)
-                        .foregroundColor(.blue)
-                }
+            // Bulk Actions Toolbar (only in edit mode)
+            if isEditMode && !selectedVisits.isEmpty {
+                bulkActionsToolbar
             }
             
-            // Calendar Grid (simplified)
-            VStack(spacing: 8) {
-                // Day headers
-                HStack {
-                    ForEach(["L", "M", "X", "J", "V", "S", "D"], id: \.self) { day in
-                        Text(day)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                
-                // Calendar days (simplified grid)
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
-                    ForEach(1...30, id: \.self) { day in
-                        Button(action: {
-                            // Update selected date logic
-                            let components = Calendar.current.dateComponents([.year, .month], from: selectedDate)
-                            if let newDate = Calendar.current.date(from: DateComponents(year: components.year, month: components.month, day: day)) {
-                                selectedDate = newDate
-                            }
-                        }) {
-                            Text("\(day)")
-                                .font(.subheadline)
-                                .fontWeight(Calendar.current.component(.day, from: selectedDate) == day ? .bold : .regular)
-                                .foregroundColor(Calendar.current.component(.day, from: selectedDate) == day ? .white : Color(UIColor.label))
-                                .frame(width: 36, height: 36)
-                                .background(
-                                    Circle()
-                                        .fill(
-                                            Calendar.current.component(.day, from: selectedDate) == day ?
-                                            LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing) :
-                                            LinearGradient(colors: [Color.clear], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                        )
-                                )
-                                .overlay(
-                                    // Visit indicator
-                                    Circle()
-                                        .fill(Color.orange)
-                                        .frame(width: 6, height: 6)
-                                        .offset(x: 12, y: -12)
-                                        .opacity(hasVisitsForDay(day) ? 1 : 0)
-                                )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                }
+            // Month navigation (for month view)
+            if viewMode == .month {
+                monthNavigationView
             }
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(UIColor.secondarySystemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
-        )
+        .background(Color(.systemBackground))
+        .shadow(color: .black.opacity(0.05), radius: 1, x: 0, y: 1)
     }
     
-    // MARK: - Professional Week Header
-    private var professionalWeekHeader: some View {
+    // MARK: - Month Navigation
+    private var monthNavigationView: some View {
         HStack {
-            Button(action: previousWeek) {
+            Button(action: vm.goToPreviousMonth) {
                 Image(systemName: "chevron.left")
                     .font(.title3)
+                    .fontWeight(.semibold)
                     .foregroundColor(.blue)
             }
             
             Spacer()
             
-            Text(weekFormatter.string(from: selectedDate))
-                .font(.headline)
+            Text(monthYearText)
+                .font(.title2)
                 .fontWeight(.semibold)
-                .foregroundColor(Color(UIColor.label))
+                .foregroundColor(.primary)
             
             Spacer()
             
-            Button(action: nextWeek) {
+            Button(action: vm.goToNextMonth) {
                 Image(systemName: "chevron.right")
                     .font(.title3)
+                    .fontWeight(.semibold)
                     .foregroundColor(.blue)
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
     }
     
-    // MARK: - Professional Week Grid
-    private var professionalWeekGrid: some View {
-        HStack(spacing: 8) {
-            ForEach(0..<7) { dayOffset in
-                let date = Calendar.current.date(byAdding: .day, value: dayOffset, to: startOfWeek) ?? Date()
-                let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-                
-                VStack(spacing: 8) {
-                    Text(weekdayFormatter.string(from: date))
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.secondary)
-                    
-                    Button(action: {
-                        selectedDate = date
-                    }) {
-                        Text("\(Calendar.current.component(.day, from: date))")
-                            .font(.subheadline)
-                            .fontWeight(isSelected ? .bold : .regular)
-                            .foregroundColor(isSelected ? .white : Color(UIColor.label))
-                            .frame(width: 36, height: 36)
-                            .background(
-                                Circle()
-                                    .fill(
-                                        isSelected ?
-                                        LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing) :
-                                        LinearGradient(colors: [Color.gray.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                    )
-                            )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(.horizontal, 8)
-    }
-    
-    // MARK: - Enhanced Selected Date Visits
-    private var enhancedSelectedDateVisits: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Visitas para \(dayFormatter.string(from: selectedDate))")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(Color(UIColor.label))
-                
-                Spacer()
-                
-                Text("\(visitsForSelectedDate.count)")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill(Color.blue)
-                    )
-            }
-            
-            if visitsForSelectedDate.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "calendar.badge.plus")
-                        .font(.title2)
-                        .foregroundColor(.blue.opacity(0.6))
-                    
-                    Text("No hay visitas programadas")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 24)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.gray.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.gray.opacity(0.1), lineWidth: 1)
-                        )
-                )
-            } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(visitsForSelectedDate) { visit in
-                        ProfessionalVisitCard(visit: visit) {
-                            selectedVisit = visit
-                        }
-                    }
-                }
+    // MARK: - Main Content
+    private var mainContentView: some View {
+        Group {
+            switch viewMode {
+            case .list:
+                visitListView
+            case .week:
+                weekView
+            case .month:
+                monthView
             }
         }
     }
     
-    // MARK: - Filters Sheet
-    private var filtersSheet: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Text("Filtrar visitas")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .padding(.top, 20)
-                
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                    ForEach(VisitFilter.allCases, id: \.self) { filter in
-                        Button(action: {
-                            selectedFilter = filter
-                            showingFilters = false
-                        }) {
-                            VStack(spacing: 12) {
-                                Image(systemName: filter.icon)
-                                    .font(.title2)
-                                    .foregroundColor(selectedFilter == filter ? .white : .blue)
-                                
-                                Text(filter.rawValue)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(selectedFilter == filter ? .white : Color(UIColor.label))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(
-                                        selectedFilter == filter ?
-                                        LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing) :
-                                        LinearGradient(colors: [Color.gray.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                    )
-                            )
+    // MARK: - Day View
+    private var dayView: some View {
+        VStack(spacing: 16) {
+            // Day selector
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(weekDays, id: \.self) { date in
+                        DayButton(
+                            date: date,
+                            isSelected: Calendar.current.isDate(date, inSameDayAs: vm.selectedDate),
+                            visitCount: vm.visits(for: date).count
+                        ) {
+                            vm.selectedDate = date
                         }
-                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 .padding(.horizontal, 20)
-                
-                Spacer()
             }
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    Button("Cerrar") {
-                        showingFilters = false
+            
+            // Day events list
+            dayEventsList
+                .background(Color(.systemBackground))
+                .cornerRadius(16)
+                .padding(.horizontal, 20)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    // MARK: - Week View
+    private var weekView: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                WeekCalendarView(
+                    selectedDate: $vm.selectedDate,
+                    visits: vm.allVisits,
+                    onVisitTap: editVisit
+                )
+                .background(Color(.systemBackground))
+                .cornerRadius(16)
+                .padding(.horizontal, 20)
+                
+                // Add bottom padding to account for floating button
+                Color.clear
+                    .frame(height: 80)
+            }
+        }
+        .scrollIndicators(.hidden)
+    }
+    
+    // MARK: - Month View
+    private var monthView: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Enhanced Calendar
+                EnhancedCalendarMonthView(
+                    month: vm.currentMonth,
+                    selectedDate: $vm.selectedDate,
+                    visits: vm.allVisits,
+                    onDateTap: { date in
+                        vm.selectedDate = date
+                    }
+                )
+                .background(Color(.systemBackground))
+                .cornerRadius(16)
+                .padding(.horizontal, 20)
+                
+                // Selected day events with proper scroll
+                selectedDayEventsCard
+                    .padding(.horizontal, 20)
+                
+                // Add bottom padding to account for floating button
+                Color.clear
+                    .frame(height: 80)
+            }
+        }
+        .scrollIndicators(.hidden)
+    }
+    
+    // MARK: - List View
+    private var visitListView: some View {
+        Group {
+            if vm.allVisits.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.system(size: 50))
+                        .foregroundColor(.gray)
+                    
+                    Text("No visits scheduled")
+                        .font(.title3)
+                        .fontWeight(.medium)
+                        .foregroundColor(.gray)
+                    
+                    Text("Tap the + button to add your first visit")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(vm.allVisits.sorted(by: { $0.startDate < $1.startDate })) { visit in
+                            VisitRowView(
+                                visit: visit,
+                                isEditMode: isEditMode,
+                                isSelected: selectedVisits.contains(visit.id),
+                                onTap: {
+                                    if isEditMode {
+                                        toggleSelection(visit.id)
+                                    } else {
+                                        editVisit(visit)
+                                    }
+                                },
+                                onLongPress: {
+                                    if !isEditMode {
+                                        showVisitDetails(visit)
+                                    }
+                                }
+                            )
+                        }
+                        
+                        // Add bottom padding to account for floating button
+                        Color.clear
+                            .frame(height: 80)
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .scrollIndicators(.hidden)
+            }
+        }
+    }
+    
+    // MARK: - Bulk Actions Toolbar
+    private var bulkActionsToolbar: some View {
+        HStack {
+            Button("Seleccionar todo") {
+                if selectedVisits.count == vm.allVisits.count {
+                    selectedVisits.removeAll()
+                } else {
+                    selectedVisits = Set(vm.allVisits.map { $0.id })
+                }
+            }
+            .foregroundColor(.blue)
+            
+            Spacer()
+            
+            Button(action: { showingBulkDeleteAlert = true }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "trash")
+                    Text("Eliminar")
+                }
+                .foregroundColor(.red)
+            }
+            .disabled(selectedVisits.isEmpty)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+        .background(Color(.systemGray6))
+    }
+    
+    // MARK: - Helper Functions
+    private func toggleSelection(_ id: UUID) {
+        if selectedVisits.contains(id) {
+            selectedVisits.remove(id)
+        } else {
+            selectedVisits.insert(id)
+        }
+    }
+    
+    private func showVisitDetails(_ visit: AgendaVisit) {
+        selectedVisit = visit
+        showingVisitDetail = true
+    }
+    
+    private func bulkDeleteVisits() {
+        Task {
+            for visitId in selectedVisits {
+                await vm.deleteVisit(visitId)
+            }
+            selectedVisits.removeAll()
+            isEditMode = false
+        }
+    }
+
+    private func timeRange(_ v: AgendaVisit) -> String {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return "\(f.string(from: v.startDate)) - \(f.string(from: v.endDate))"
+    }
+    
+    // MARK: - Computed Properties
+    private var headerSubtitle: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: vm.selectedDate)
+    }
+    
+    private var viewModeIcon: String {
+        switch viewMode {
+        case .month: return "calendar"
+        case .week: return "calendar.day.timeline.leading"
+        case .list: return "list.bullet"
+        }
+    }
+    
+    private var viewModeText: String {
+        switch viewMode {
+        case .month: return "Mes"
+        case .week: return "Semana"
+        case .list: return "Lista"
+        }
+    }
+    
+    private var monthYearText: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        formatter.locale = Locale(identifier: "es_ES")
+        return formatter.string(from: vm.selectedDate).capitalized
+    }
+    
+    private var weekDays: [Date] {
+        let calendar = Calendar.current
+        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: vm.selectedDate) else {
+            return []
+        }
+        
+        var dates: [Date] = []
+        var currentDate = weekInterval.start
+        
+        for _ in 0..<7 {
+            dates.append(currentDate)
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+        }
+        
+        return dates
+    }
+    
+    private var dayEventsList: some View {
+        let dayEvents = vm.allVisits.filter { 
+            Calendar.current.isDate($0.startDate, inSameDayAs: vm.selectedDate)
+        }
+        
+        return LazyVStack(spacing: 12) {
+            if dayEvents.isEmpty {
+                Text("No hay eventos para este día")
+                    .foregroundColor(.secondary)
+                    .font(.body)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 40)
+            } else {
+                ForEach(dayEvents, id: \.id) { visit in
+                    Button(action: { editVisit(visit) }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(visit.title)
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                
+                                Text(timeRange(visit))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                if let location = visit.location {
+                                    Text(location)
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Circle()
+                                .fill(Color.blue)
+                                .frame(width: 8, height: 8)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    if visit.id != dayEvents.last?.id {
+                        Divider()
                     }
                 }
             }
         }
+        .padding(16)
+    }
+    
+    private func editVisit(_ visit: AgendaVisit) {
+        selectedVisit = visit
+        showingEditVisit = true
+    }
+    
+    private var floatingActionButton: some View {
+        Button(action: { showingNewVisit = true }) {
+            Image(systemName: "plus")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+                .frame(width: 56, height: 56)
+                .background(
+                    Circle()
+                        .fill(Color(.systemBlue))
+                        .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
+                )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(1.0)
+        .animation(.easeInOut(duration: 0.1), value: false)
+    }
+    
+    private var selectedDayEventsCard: some View {
+        let dayEvents = vm.allVisits.filter { 
+            Calendar.current.isDate($0.startDate, inSameDayAs: vm.selectedDate)
+        }
+        
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Eventos del día")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            if dayEvents.isEmpty {
+                Text("No hay eventos programados")
+                    .foregroundColor(.secondary)
+                    .font(.body)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+            } else {
+                ForEach(dayEvents, id: \.id) { visit in
+                    Button(action: {
+                        selectedVisit = visit
+                        showingEditVisit = true
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(visit.title)
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                
+                                Text(timeRange(visit))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                if let location = visit.location {
+                                    Text(location)
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    if visit.id != dayEvents.last?.id {
+                        Divider()
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
     }
 }
 
-// MARK: - Professional Visit Card Component
-struct ProfessionalVisitCard: View {
-    let visit: MockVisitAgenda
+// MARK: - VisitRowView
+struct VisitRowView: View {
+    let visit: AgendaVisit
+    let isEditMode: Bool
+    let isSelected: Bool
     let onTap: () -> Void
+    let onLongPress: () -> Void
     
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 16) {
-                // Type Icon
-                VStack {
-                    Image(systemName: visit.type.icon)
-                        .font(.title2)
-                        .foregroundColor(.white)
-                        .frame(width: 50, height: 50)
-                        .background(
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [visit.type.color, visit.type.color.opacity(0.7)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                        )
-                    
-                    Spacer()
+            HStack {
+                // Selection indicator in edit mode
+                if isEditMode {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(isSelected ? .blue : .gray)
+                        .font(.title3)
                 }
                 
-                // Visit Info
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(visit.title)
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(Color(UIColor.label))
-                        
-                        Spacer()
-                        
-                        Text(visit.time)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.blue)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 4)
-                            .background(
-                                Capsule()
-                                    .fill(Color.blue.opacity(0.1))
-                            )
-                    }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(visit.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
                     
-                    if let location = visit.location {
-                        HStack(spacing: 6) {
-                            Image(systemName: "location")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text(location)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                    Text(timeRange(visit))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                     
-                    if let notes = visit.notes {
+                    if let notes = visit.notes, !notes.isEmpty {
                         Text(notes)
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -853,19 +621,391 @@ struct ProfessionalVisitCard: View {
                 }
                 
                 Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(visit.visitType.displayName)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(visitTypeColor(visit.visitType).opacity(0.2))
+                        .foregroundColor(visitTypeColor(visit.visitType))
+                        .cornerRadius(8)
+                    
+                    if !isEditMode {
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
             }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(UIColor.secondarySystemBackground))
-                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
+            .scaleEffect(isSelected ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: isSelected)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onLongPressGesture {
+            onLongPress()
+        }
+    }
+    
+    private func timeRange(_ visit: AgendaVisit) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .medium
+        return "\(formatter.string(from: visit.startDate)) - \(formatter.string(from: visit.endDate))"
+    }
+    
+    private func visitTypeColor(_ type: AgendaVisitType) -> Color {
+        switch type {
+        case .medical: return .red
+        case .school: return .blue
+        case .activity: return .green
+        case .weekend: return .orange
+        case .dinner: return .purple
+        case .emergency: return .pink
+        case .general: return .gray
+        }
+    }
+}
+
+// MARK: - VisitDetailView
+struct VisitDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    let visit: AgendaVisit
+    let onEdit: (AgendaVisit) -> Void
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Header Card
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(visit.title)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                
+                                HStack {
+                                    Image(systemName: visitTypeIcon(visit.visitType))
+                                    Text(visit.visitType.displayName)
+                                }
+                                .font(.subheadline)
+                                .foregroundColor(visitTypeColor(visit.visitType))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(visitTypeColor(visit.visitType).opacity(0.1))
+                                .cornerRadius(20)
+                            }
+                            
+                            Spacer()
+                        }
+                        
+                        Divider()
+                        
+                        // Date & Time
+                        DetailRow(
+                            icon: "calendar",
+                            title: "Fecha y Hora",
+                            content: formatDateRange(visit.startDate, visit.endDate)
+                        )
+                        
+                        // Location
+                        if let location = visit.location, !location.isEmpty {
+                            DetailRow(
+                                icon: "location",
+                                title: "Ubicación",
+                                content: location
+                            )
+                        }
+                        
+                        // Notes
+                        if let notes = visit.notes, !notes.isEmpty {
+                            DetailRow(
+                                icon: "note.text",
+                                title: "Notas",
+                                content: notes
+                            )
+                        }
+                        
+                        // Reminder
+                        if let reminderMinutes = visit.reminderMinutes {
+                            DetailRow(
+                                icon: "bell",
+                                title: "Recordatorio",
+                                content: reminderText(reminderMinutes)
+                            )
+                        }
+                        
+                        // Recurrence
+                        if visit.isRecurring {
+                            DetailRow(
+                                icon: "repeat",
+                                title: "Repetición",
+                                content: "Activa"
+                            )
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(16)
+                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                    
+                    Spacer()
+                }
+                .padding()
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Detalles de la Visita")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cerrar") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Editar") {
+                        onEdit(visit)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+    
+    private func visitTypeIcon(_ type: AgendaVisitType) -> String {
+        switch type {
+        case .medical: return "cross.fill"
+        case .school: return "book.fill"
+        case .activity: return "figure.run"
+        case .weekend: return "house.fill"
+        case .dinner: return "fork.knife"
+        case .emergency: return "exclamationmark.triangle.fill"
+        case .general: return "calendar"
+        }
+    }
+    
+    private func visitTypeColor(_ type: AgendaVisitType) -> Color {
+        switch type {
+        case .medical: return .red
+        case .school: return .blue
+        case .activity: return .green
+        case .weekend: return .orange
+        case .dinner: return .purple
+        case .emergency: return .pink
+        case .general: return .gray
+        }
+    }
+    
+    private func formatDateRange(_ start: Date, _ end: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .short
+        
+        let calendar = Calendar.current
+        if calendar.isDate(start, inSameDayAs: end) {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .full
+            let timeFormatter = DateFormatter()
+            timeFormatter.timeStyle = .short
+            
+            return "\(dateFormatter.string(from: start))\n\(timeFormatter.string(from: start)) - \(timeFormatter.string(from: end))"
+        } else {
+            return "\(formatter.string(from: start))\n\(formatter.string(from: end))"
+        }
+    }
+    
+    private func reminderText(_ minutes: Int) -> String {
+        switch minutes {
+        case 5: return "5 minutos antes"
+        case 15: return "15 minutos antes"
+        case 30: return "30 minutos antes"
+        case 60: return "1 hora antes"
+        case 120: return "2 horas antes"
+        case 1440: return "1 día antes"
+        default: return "\(minutes) minutos antes"
+        }
+    }
+}
+
+// MARK: - DetailRow
+struct DetailRow: View {
+    let icon: String
+    let title: String
+    let content: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(.blue)
+                .frame(width: 20)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                
+                Text(content)
+                    .font(.body)
+                    .foregroundColor(.primary)
+            }
+            
+            Spacer()
+        }
+    }
+}
+
+fileprivate struct NewVisitPlaceholderView: View {
+    var onSave: (AgendaVisit) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var title = ""
+    @State private var start = Date()
+    @State private var end = Date().addingTimeInterval(3600)
+    @State private var location = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Details") {
+                    TextField("Title", text: $title)
+                    DatePicker("Start", selection: $start)
+                    DatePicker("End", selection: $end)
+                    TextField("Location", text: $location)
+                }
+            }
+            .navigationTitle("New Visit")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let v = AgendaVisit(
+                            title: title.isEmpty ? "Untitled" : title,
+                            startDate: start,
+                            endDate: end,
+                            location: location.isEmpty ? nil : location,
+                            notes: nil,
+                            reminderMinutes: nil,
+                            isRecurring: false,
+                            recurrenceRule: nil,
+                            visitType: .activity,
+                            eventKitIdentifier: nil
+                        )
+                        onSave(v); dismiss()
+                    }
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - External Component References
+// Using external widgets:
+// - EnhancedCalendarMonthView from UI/Widgets/EnhancedCalendarMonthView.swift
+// - WeekCalendarView from UI/Widgets/WeekCalendarView.swift
+
+// MARK: - DayButton Component
+struct DayButton: View {
+    let date: Date
+    let isSelected: Bool
+    let visitCount: Int
+    let action: () -> Void
+    
+    private let calendar = Calendar.current
+    private let today = Date()
+    
+    var isToday: Bool {
+        calendar.isDate(date, inSameDayAs: today)
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                // Day number
+                Text("\(calendar.component(.day, from: date))")
+                    .font(.system(size: 16, weight: isSelected ? .bold : .medium))
+                    .foregroundColor(textColor)
+                
+                // Day name
+                Text(dayName)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.secondary)
+                
+                // Visit count indicator
+                if visitCount > 0 {
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 6, height: 6)
+                        .overlay(
+                            Text("\(visitCount)")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                                .opacity(visitCount > 1 ? 1 : 0)
+                        )
+                } else {
+                    Circle()
+                        .fill(Color.clear)
+                        .frame(width: 6, height: 6)
+                }
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(backgroundColor)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(borderColor, lineWidth: borderWidth)
             )
         }
         .buttonStyle(PlainButtonStyle())
     }
-}
-
-// MARK: - Preview
-#Preview {
-    AgendaView()
+    
+    private var textColor: Color {
+        if isSelected {
+            return .white
+        } else if isToday {
+            return .blue
+        } else {
+            return .primary
+        }
+    }
+    
+    private var backgroundColor: Color {
+        if isSelected {
+            return .blue
+        } else if isToday {
+            return Color.blue.opacity(0.1)
+        } else {
+            return Color.gray.opacity(0.05)
+        }
+    }
+    
+    private var borderColor: Color {
+        if isSelected {
+            return .blue
+        } else if isToday {
+            return .blue
+        } else {
+            return Color.gray.opacity(0.2)
+        }
+    }
+    
+    private var borderWidth: CGFloat {
+        isSelected || isToday ? 2 : 1
+    }
+    
+    private var dayName: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "E"
+        return formatter.string(from: date).uppercased()
+    }
 }

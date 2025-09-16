@@ -5,6 +5,19 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>background-processing</string>
 	</array>
+	
+	<!-- Calendar Access Permission -->
+	<key>NSCalendarsUsageDescription</key>
+	<string>JustDad necesita acceso a tu calendario para sincronizar automáticamente las visitas con tus hijos y ayudarte a gestionar mejor tu tiempo.</string>
+	
+	<!-- Reminders Access Permission -->
+	<key>NSRemindersUsageDescription</key>
+	<string>JustDad necesita acceso a tus recordatorios para crear alertas personalizadas sobre las visitas con tus hijos.</string>
+	
+	<!-- Notification Permission -->
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>JustDad envía notificaciones para recordarte las próximas visitas con tus hijos y eventos importantes.</string>
 </dict>
 </plist>
