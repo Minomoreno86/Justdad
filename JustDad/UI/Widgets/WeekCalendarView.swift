@@ -120,7 +120,7 @@ struct WeekCalendarView: View {
 }
 
 #Preview {
-    @State var selectedDate = Date()
+    @Previewable @State var selectedDate = Date()
     
     WeekCalendarView(
         selectedDate: $selectedDate,

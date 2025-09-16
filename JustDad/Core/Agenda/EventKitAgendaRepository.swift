@@ -10,7 +10,7 @@ import UserNotifications
 import Combine
 
 @MainActor
-final class EventKitAgendaRepository: ObservableObject, AgendaRepositoryProtocol {
+final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRepositoryProtocol {
 
     // MARK: - Published state
     @Published var permissionStatus: AgendaPermissionStatus = .notDetermined

@@ -11,7 +11,7 @@ import Foundation
 // AgendaTypes should be imported via the module system
 
 @MainActor
-class InMemoryAgendaRepository: ObservableObject, AgendaRepositoryProtocol {
+class InMemoryAgendaRepository: ObservableObject, @preconcurrency AgendaRepositoryProtocol {
     @Published private var visits: [AgendaVisit] = []
     @Published var permissionStatus: AgendaPermissionStatus = .notDetermined
     

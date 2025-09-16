@@ -173,12 +173,36 @@ struct DayCell: View {
 }
 
 #Preview {
-    @State var selectedDate = Date()
+    @Previewable @State var selectedDate = Date()
+    
+    EnhancedCalendarMonthView(
+        month: Date(),
+        selectedDate: .constant(Date()),
+        visits: [],
+        onDateTap: { _ in }
+    )
+}
+
+#Preview("With Visits") {
+    @Previewable @State var selectedDate = Date()
+    
+    let sampleVisits = [
+        AgendaVisit(
+            id: UUID(),
+            title: "Visit with Kids",
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(3600),
+            location: "Park",
+            notes: "Fun day at the park",
+            reminderMinutes: 30,
+            isRecurring: false
+        )
+    ]
     
     EnhancedCalendarMonthView(
         month: Date(),
         selectedDate: $selectedDate,
-        visits: [],
+        visits: sampleVisits,
         onDateTap: { _ in }
     )
 }

@@ -1,6 +1,6 @@
 //
 //  CoreDataModels.swift
-//  JustDad - SwiftData model definitions  
+//  SoloPapá - Core Data model definitions
 //
 //  Data models for offline-first architecture with SQLCipher encryption
 //
@@ -8,8 +8,9 @@
 import Foundation
 import SwiftData
 
-// Import AgendaVisitType from AgendaTypes - now properly accessible
-// Since all files are in the same module, direct access should work
+// Import AgendaVisitType from AgendaTypes module
+// AgendaVisitType should be accessible from the same module
+// Make sure AgendaTypes.swift is compiled before this file
 
 // MARK: - Container Manager Extension
 extension ModelContainer {
