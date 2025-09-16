@@ -92,32 +92,50 @@ struct SpacingTokens {
     let element: CGFloat = 8
 }
 
-// MARK: - 🎨 Color Tokens
+// MARK: - 🎨 Color Tokens (Professional Palette)
 struct ColorTokens {
-    // Primary brand colors
-    let primary = Color.blue
-    let primaryLight = Color.blue.opacity(0.1)
-    let primaryDark = Color(red: 0.0, green: 0.3, blue: 0.8)
+    // Primary Colors - More vibrant and professional
+    let primary = Color(red: 0.06, green: 0.47, blue: 0.84) // Vibrant professional blue
+    let primaryLight = Color(red: 0.55, green: 0.75, blue: 0.95)
+    let primaryDark = Color(red: 0.03, green: 0.35, blue: 0.65)
     
-    // Surface colors
-    let background = Color(red: 0.98, green: 0.98, blue: 1.0)
-    let surface = Color(red: 0.95, green: 0.95, blue: 0.97)
+    // Accent Colors
+    let accent = Color(red: 0.95, green: 0.38, blue: 0.21) // Professional orange
+    let accentLight = Color(red: 1.0, green: 0.65, blue: 0.45)
+    
+    // Background Colors - More contrast
+    let background = Color(red: 0.96, green: 0.97, blue: 1.0) // Premium background
+    let surface = Color.white
+    let surfaceSecondary = Color(red: 0.94, green: 0.96, blue: 0.99)
+    let surfaceElevated = Color(red: 0.99, green: 0.99, blue: 1.0)
+    
+    // Text Colors - Enhanced contrast
+    let textPrimary = Color(red: 0.08, green: 0.09, blue: 0.15)
+    let textSecondary = Color(red: 0.35, green: 0.38, blue: 0.45)
+    let textTertiary = Color(red: 0.55, green: 0.58, blue: 0.65)
+    
+    // Semantic Colors
+    let success = Color(red: 0.15, green: 0.75, blue: 0.35)
+    let warning = Color(red: 0.95, green: 0.65, blue: 0.15)
+    let error = Color(red: 0.88, green: 0.25, blue: 0.25)
+    let info = Color(red: 0.25, green: 0.65, blue: 0.88)
+    
+    // Professional Gradients
+    let primaryGradient = LinearGradient(
+        colors: [Color(red: 0.06, green: 0.47, blue: 0.84), Color(red: 0.03, green: 0.35, blue: 0.65)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
+    let surfaceGradient = LinearGradient(
+        colors: [Color.white, Color(red: 0.99, green: 0.99, blue: 1.0)],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+    
+    // Component-specific colors
     let card = Color.white
-    
-    // Text colors
-    let textPrimary = Color.primary
-    let textSecondary = Color.secondary
-    let textTertiary = Color.gray
-    
-    // Semantic colors
-    let success = Color.green
-    let warning = Color.orange
-    let error = Color.red
-    let info = Color.blue
-    
-    // Border colors
-    let border = Color.gray.opacity(0.3)
-    let borderLight = Color.gray.opacity(0.1)
+    let cardSecondary = Color(red: 0.99, green: 0.99, blue: 1.0)
 }
 
 // MARK: - ✍️ Typography Tokens

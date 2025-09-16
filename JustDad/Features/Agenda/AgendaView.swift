@@ -1,4 +1,5 @@
 import SwiftUI
+import EventKit
 
 struct AgendaView: View {
     @StateObject private var vm: AgendaViewModel
@@ -11,6 +12,29 @@ struct AgendaView: View {
     @State private var selectedVisits: Set<UUID> = []
     @State private var showingBulkDeleteAlert = false
     @State private var showingVisitDetail = false
+    @State private var searchText = ""
+    @State private var selectedFilter: VisitFilter = .all
+    @State private var showingFilterSheet = false
+    
+    enum VisitFilter: String, CaseIterable {
+        case all = "Todos"
+        case today = "Hoy"
+        case week = "Esta semana"
+        case month = "Este mes"
+        case upcoming = "Próximos"
+        case past = "Pasados"
+        
+        var icon: String {
+            switch self {
+            case .all: return "calendar"
+            case .today: return "calendar.circle"
+            case .week: return "calendar.day.timeline.leading"
+            case .month: return "calendar.month"
+            case .upcoming: return "calendar.badge.clock"
+            case .past: return "clock.arrow.circlepath"
+            }
+        }
+    }
     
     init(repo: AgendaRepositoryProtocol) {
         _vm = StateObject(wrappedValue: AgendaViewModel(repo: repo))
@@ -19,6 +43,10 @@ struct AgendaView: View {
     var body: some View {
         NavigationView {
             ZStack {
+                // Professional gradient background
+                SuperDesign.Tokens.colors.surfaceGradient
+                    .ignoresSafeArea()
+                
                 VStack(spacing: 0) {
                     // Professional Header with View Mode Selector
                     headerView
@@ -27,7 +55,6 @@ struct AgendaView: View {
                     mainContentView
                         .clipped() // Prevent content overflow
                 }
-                .background(Color(.systemGroupedBackground))
                 
                 // Floating Action Button - properly positioned
                 VStack {
@@ -35,8 +62,8 @@ struct AgendaView: View {
                     HStack {
                         Spacer()
                         floatingActionButton
-                            .padding(.trailing, 20)
-                            .padding(.bottom, 20)
+                            .padding(.trailing, SuperDesign.Tokens.space.lg)
+                            .padding(.bottom, SuperDesign.Tokens.space.xl)
                     }
                 }
                 .allowsHitTesting(true) // Ensure button remains tappable
@@ -69,16 +96,11 @@ struct AgendaView: View {
                 )
             }
         }
-        .actionSheet(isPresented: $showingViewModeSheet) {
-            ActionSheet(
-                title: Text("Vista del Calendario"),
-                buttons: [
-                    .default(Text("Vista Lista")) { viewMode = .list },
-                    .default(Text("Vista Semana")) { viewMode = .week },
-                    .default(Text("Vista Mes")) { viewMode = .month },
-                    .cancel(Text("Cancelar"))
-                ]
-            )
+        .confirmationDialog("Vista del Calendario", isPresented: $showingViewModeSheet, titleVisibility: .visible) {
+            Button("Vista Lista") { viewMode = .list }
+            Button("Vista Semana") { viewMode = .week }
+            Button("Vista Mes") { viewMode = .month }
+            Button("Cancelar", role: .cancel) { }
         }
         .alert("Eliminar Visitas", isPresented: $showingBulkDeleteAlert) {
             Button("Cancelar", role: .cancel) { }
@@ -95,107 +117,148 @@ struct AgendaView: View {
                 }
             }
         }
+        .confirmationDialog("Filtrar Visitas", isPresented: $showingFilterSheet, titleVisibility: .visible) {
+            ForEach(VisitFilter.allCases, id: \.self) { filter in
+                Button("\(filter.icon) \(filter.rawValue)") {
+                    selectedFilter = filter
+                }
+            }
+            Button("Cancelar", role: .cancel) { }
+        }
     }
     
     // MARK: - Header View
     private var headerView: some View {
-        VStack(spacing: 16) {
-            // Top navigation bar
+        VStack(spacing: SuperDesign.Tokens.space.md) {
+            // Top navigation bar with professional gradient
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SuperDesign.Tokens.space.xxs) {
                     HStack {
-                        Text("Agenda")
-                            .font(.largeTitle)
+                        Text("📅 Agenda")
+                            .font(SuperDesign.Tokens.typography.headlineLarge)
                             .fontWeight(.bold)
-                            .foregroundColor(.primary)
+                            .foregroundColor(SuperDesign.Tokens.colors.textPrimary)
                         
                         if isEditMode {
                             Text("(\(selectedVisits.count) seleccionadas)")
-                                .font(.subheadline)
-                                .foregroundColor(.blue)
+                                .font(SuperDesign.Tokens.typography.bodyMedium)
+                                .foregroundColor(SuperDesign.Tokens.colors.primary)
+                                .padding(.horizontal, SuperDesign.Tokens.space.sm)
+                                .padding(.vertical, SuperDesign.Tokens.space.xxs)
+                                .background(SuperDesign.Tokens.colors.primaryLight)
+                                .cornerRadius(12)
                         }
                     }
                     
                     Text(headerSubtitle)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(SuperDesign.Tokens.typography.bodyMedium)
+                        .foregroundColor(SuperDesign.Tokens.colors.textSecondary)
                 }
                 
                 Spacer()
                 
-                // Edit mode toggle
+                // Edit mode toggle with enhanced styling
                 if viewMode == .list && !vm.allVisits.isEmpty {
-                    Button(isEditMode ? "Cancelar" : "Editar") {
-                        withAnimation {
+                    SuperButton(
+                        title: isEditMode ? "Cancelar" : "Editar",
+                        style: .secondary,
+                        size: .small
+                    ) {
+                        withAnimation(SuperDesign.Tokens.animation.easeInOut) {
                             isEditMode.toggle()
                             if !isEditMode {
                                 selectedVisits.removeAll()
                             }
                         }
                     }
-                    .foregroundColor(.blue)
                 }
                 
-                // View mode selector
-                Button(action: { showingViewModeSheet = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: viewModeIcon)
-                        Text(viewModeText)
-                            .font(.footnote)
-                            .fontWeight(.medium)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color(.systemBlue).opacity(0.1))
-                    .foregroundColor(.blue)
-                    .cornerRadius(8)
+                // View mode selector with enhanced styling
+                SuperButton(
+                    title: viewModeText,
+                    icon: viewModeIcon,
+                    style: .primary,
+                    size: .small
+                ) {
+                    showingViewModeSheet = true
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
+            .padding(.horizontal, SuperDesign.Tokens.space.lg)
+            .padding(.top, SuperDesign.Tokens.space.lg)
             
             // Bulk Actions Toolbar (only in edit mode)
             if isEditMode && !selectedVisits.isEmpty {
                 bulkActionsToolbar
             }
             
-            // Month navigation (for month view)
+            // Month navigation (for month view) with enhanced styling
             if viewMode == .month {
                 monthNavigationView
             }
+            
+            // Search bar (only in list mode)
+            if viewMode == .list {
+                searchBarView
+            }
         }
-        .background(Color(.systemBackground))
-        .shadow(color: .black.opacity(0.05), radius: 1, x: 0, y: 1)
+        .background(
+            RoundedRectangle(cornerRadius: 0)
+                .fill(SuperDesign.Tokens.colors.surfaceElevated)
+                .shadow(color: SuperDesign.Tokens.colors.primary.opacity(0.1), radius: 8, x: 0, y: 2)
+        )
     }
     
     // MARK: - Month Navigation
     private var monthNavigationView: some View {
         HStack {
-            Button(action: vm.goToPreviousMonth) {
-                Image(systemName: "chevron.left")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.blue)
+            SuperButton(
+                title: "",
+                icon: "chevron.left",
+                style: .ghost,
+                size: .medium
+            ) {
+                withAnimation(SuperDesign.Tokens.animation.spring) {
+                    vm.goToPreviousMonth()
+                }
             }
             
             Spacer()
             
-            Text(monthYearText)
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(.primary)
+            VStack(spacing: SuperDesign.Tokens.space.xxs) {
+                Text(monthYearText)
+                    .font(SuperDesign.Tokens.typography.titleLarge)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(SuperDesign.Tokens.colors.primaryGradient)
+                
+                // Professional indicator line
+                Rectangle()
+                    .fill(SuperDesign.Tokens.colors.primary)
+                    .frame(height: 2)
+                    .frame(maxWidth: 60)
+                    .cornerRadius(1)
+            }
             
             Spacer()
             
-            Button(action: vm.goToNextMonth) {
-                Image(systemName: "chevron.right")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.blue)
+            SuperButton(
+                title: "",
+                icon: "chevron.right",
+                style: .ghost,
+                size: .medium
+            ) {
+                withAnimation(SuperDesign.Tokens.animation.spring) {
+                    vm.goToNextMonth()
+                }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 16)
+        .padding(.horizontal, SuperDesign.Tokens.space.lg)
+        .padding(.bottom, SuperDesign.Tokens.space.md)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(SuperDesign.Tokens.colors.surface)
+                .shadow(color: SuperDesign.Tokens.colors.primary.opacity(0.08), radius: 4, x: 0, y: 1)
+        )
+        .padding(.horizontal, SuperDesign.Tokens.space.md)
     }
     
     // MARK: - Main Content
@@ -313,7 +376,7 @@ struct AgendaView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(vm.allVisits.sorted(by: { $0.startDate < $1.startDate })) { visit in
+                        ForEach(filteredVisits.sorted(by: { $0.startDate < $1.startDate })) { visit in
                             VisitRowView(
                                 visit: visit,
                                 isEditMode: isEditMode,
@@ -342,6 +405,77 @@ struct AgendaView: View {
                 .scrollIndicators(.hidden)
             }
         }
+    }
+    
+    // MARK: - Search Bar View
+    private var searchBarView: some View {
+        HStack(spacing: SuperDesign.Tokens.space.sm) {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(SuperDesign.Tokens.colors.textTertiary)
+                
+                TextField("Buscar visitas...", text: $searchText)
+                    .textFieldStyle(PlainTextFieldStyle())
+                
+                if !searchText.isEmpty {
+                    Button(action: { searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(SuperDesign.Tokens.colors.textTertiary)
+                    }
+                }
+            }
+            .padding(.horizontal, SuperDesign.Tokens.space.md)
+            .padding(.vertical, SuperDesign.Tokens.space.sm)
+            .background(SuperDesign.Tokens.colors.surfaceSecondary)
+            .cornerRadius(SuperDesign.Tokens.effects.cornerRadius)
+            
+            // Filter button
+            SuperButton(
+                title: "",
+                icon: "line.3.horizontal.decrease.circle",
+                style: .secondary,
+                size: .small
+            ) {
+                showingFilterSheet = true
+            }
+        }
+        .padding(.horizontal, SuperDesign.Tokens.space.lg)
+        .padding(.bottom, SuperDesign.Tokens.space.md)
+    }
+    
+    // MARK: - Filtered Visits
+    private var filteredVisits: [AgendaVisit] {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        var visits = vm.allVisits
+        
+        // Apply search filter
+        if !searchText.isEmpty {
+            visits = visits.filter { visit in
+                visit.title.localizedCaseInsensitiveContains(searchText) ||
+                visit.location?.localizedCaseInsensitiveContains(searchText) == true ||
+                visit.notes?.localizedCaseInsensitiveContains(searchText) == true
+            }
+        }
+        
+        // Apply date filter
+        switch selectedFilter {
+        case .all:
+            break
+        case .today:
+            visits = visits.filter { calendar.isDateInToday($0.startDate) }
+        case .week:
+            visits = visits.filter { calendar.isDate($0.startDate, equalTo: now, toGranularity: .weekOfYear) }
+        case .month:
+            visits = visits.filter { calendar.isDate($0.startDate, equalTo: now, toGranularity: .month) }
+        case .upcoming:
+            visits = visits.filter { $0.startDate > now }
+        case .past:
+            visits = visits.filter { $0.endDate < now }
+        }
+        
+        return visits.sorted(by: { $0.startDate < $1.startDate })
     }
     
     // MARK: - Bulk Actions Toolbar
@@ -429,7 +563,7 @@ struct AgendaView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
         formatter.locale = Locale(identifier: "es_ES")
-        return formatter.string(from: vm.selectedDate).capitalized
+        return formatter.string(from: vm.currentMonth).capitalized
     }
     
     private var weekDays: [Date] {
@@ -508,21 +642,22 @@ struct AgendaView: View {
     }
     
     private var floatingActionButton: some View {
-        Button(action: { showingNewVisit = true }) {
-            Image(systemName: "plus")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .frame(width: 56, height: 56)
-                .background(
-                    Circle()
-                        .fill(Color(.systemBlue))
-                        .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
-                )
+        ZStack {
+            // Enhanced shadow ring
+            Circle()
+                .fill(SuperDesign.Tokens.colors.primary.opacity(0.2))
+                .frame(width: 64, height: 64)
+                .scaleEffect(1.2)
+                .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: UUID())
+            
+            // Main FAB with SuperDesign
+            SuperFAB(icon: "plus", size: .large) {
+                withAnimation(SuperDesign.Tokens.animation.spring) {
+                    showingNewVisit = true
+                }
+            }
+            .shadow(color: SuperDesign.Tokens.colors.primary.opacity(0.3), radius: 12, x: 0, y: 6)
         }
-        .buttonStyle(PlainButtonStyle())
-        .scaleEffect(1.0)
-        .animation(.easeInOut(duration: 0.1), value: false)
     }
     
     private var selectedDayEventsCard: some View {
@@ -530,57 +665,91 @@ struct AgendaView: View {
             Calendar.current.isDate($0.startDate, inSameDayAs: vm.selectedDate)
         }
         
-        return VStack(alignment: .leading, spacing: 12) {
-            Text("Eventos del día")
-                .font(.headline)
-                .fontWeight(.semibold)
+        return VStack(alignment: .leading, spacing: SuperDesign.Tokens.space.md) {
+            HStack {
+                Text("✨ Eventos del día")
+                    .font(SuperDesign.Tokens.typography.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(SuperDesign.Tokens.colors.primaryGradient)
+                
+                Spacer()
+                
+                Text("\(dayEvents.count)")
+                    .font(SuperDesign.Tokens.typography.bodyMedium)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, SuperDesign.Tokens.space.sm)
+                    .padding(.vertical, SuperDesign.Tokens.space.xxs)
+                    .background(SuperDesign.Tokens.colors.primary)
+                    .cornerRadius(12)
+            }
             
             if dayEvents.isEmpty {
-                Text("No hay eventos programados")
-                    .foregroundColor(.secondary)
-                    .font(.body)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 20)
+                VStack(spacing: SuperDesign.Tokens.space.sm) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.largeTitle)
+                        .foregroundColor(SuperDesign.Tokens.colors.textTertiary)
+                    
+                    Text("No hay eventos programados")
+                        .font(SuperDesign.Tokens.typography.bodyMedium)
+                        .foregroundColor(SuperDesign.Tokens.colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, SuperDesign.Tokens.space.lg)
             } else {
                 ForEach(dayEvents, id: \.id) { visit in
                     Button(action: {
                         selectedVisit = visit
                         showingEditVisit = true
                     }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: SuperDesign.Tokens.space.md) {
+                            // Color indicator
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(SuperDesign.Tokens.colors.primary)
+                                .frame(width: 4, height: 40)
+                            
+                            VStack(alignment: .leading, spacing: SuperDesign.Tokens.space.xxs) {
                                 Text(visit.title)
-                                    .font(.body)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.primary)
+                                    .font(SuperDesign.Tokens.typography.bodyMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(SuperDesign.Tokens.colors.textPrimary)
                                     .lineLimit(1)
                                 
                                 Text(timeRange(visit))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .font(SuperDesign.Tokens.typography.bodySmall)
+                                    .foregroundColor(SuperDesign.Tokens.colors.primary)
                                 
                                 if let location = visit.location {
-                                    Text(location)
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
+                                    HStack(spacing: SuperDesign.Tokens.space.xxs) {
+                                        Image(systemName: "location.fill")
+                                            .foregroundColor(SuperDesign.Tokens.colors.textTertiary)
+                                            .font(.caption)
+                                        Text(location)
+                                            .font(SuperDesign.Tokens.typography.bodySmall)
+                                            .foregroundColor(SuperDesign.Tokens.colors.textSecondary)
+                                    }
                                 }
                             }
                             
                             Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(SuperDesign.Tokens.colors.textTertiary)
+                                .font(.caption)
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, SuperDesign.Tokens.space.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(SuperDesign.Tokens.colors.surfaceSecondary)
+                                .opacity(0.5)
+                        )
                     }
                     .buttonStyle(PlainButtonStyle())
-                    
-                    if visit.id != dayEvents.last?.id {
-                        Divider()
-                    }
                 }
             }
         }
-        .padding(16)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .superCard()
     }
 }
 
@@ -602,48 +771,45 @@ struct VisitRowView: View {
                         .font(.title3)
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SuperDesign.Tokens.space.xxs) {
                     Text(visit.title)
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                        .font(SuperDesign.Tokens.typography.titleSmall)
+                        .foregroundColor(SuperDesign.Tokens.colors.textPrimary)
                         .lineLimit(1)
                     
                     Text(timeRange(visit))
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(SuperDesign.Tokens.typography.bodySmall)
+                        .foregroundColor(SuperDesign.Tokens.colors.textSecondary)
                     
                     if let notes = visit.notes, !notes.isEmpty {
                         Text(notes)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .font(SuperDesign.Tokens.typography.labelSmall)
+                            .foregroundColor(SuperDesign.Tokens.colors.textSecondary)
                             .lineLimit(2)
                     }
                 }
                 
                 Spacer()
                 
-                VStack(alignment: .trailing, spacing: 4) {
+                VStack(alignment: .trailing, spacing: SuperDesign.Tokens.space.xxs) {
                     Text(visit.visitType.displayName)
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(visitTypeColor(visit.visitType).opacity(0.2))
+                        .font(SuperDesign.Tokens.typography.labelSmall)
+                        .padding(.horizontal, SuperDesign.Tokens.space.sm)
+                        .padding(.vertical, SuperDesign.Tokens.space.xxs)
+                        .background(visitTypeColor(visit.visitType).opacity(0.15))
                         .foregroundColor(visitTypeColor(visit.visitType))
-                        .cornerRadius(8)
+                        .cornerRadius(SuperDesign.Tokens.space.sm)
                     
                     if !isEditMode {
                         Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                            .font(SuperDesign.Tokens.typography.labelSmall)
+                            .foregroundColor(SuperDesign.Tokens.colors.textTertiary)
                     }
                 }
             }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
+            .superCard()
             .scaleEffect(isSelected ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: isSelected)
+            .animation(SuperDesign.Tokens.animation.easeInOut, value: isSelected)
         }
         .buttonStyle(PlainButtonStyle())
         .onLongPressGesture {
@@ -667,169 +833,6 @@ struct VisitRowView: View {
         case .dinner: return .purple
         case .emergency: return .pink
         case .general: return .gray
-        }
-    }
-}
-
-// MARK: - VisitDetailView
-struct VisitDetailView: View {
-    @Environment(\.dismiss) private var dismiss
-    let visit: AgendaVisit
-    let onEdit: (AgendaVisit) -> Void
-    
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // Header Card
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(visit.title)
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                
-                                HStack {
-                                    Image(systemName: visitTypeIcon(visit.visitType))
-                                    Text(visit.visitType.displayName)
-                                }
-                                .font(.subheadline)
-                                .foregroundColor(visitTypeColor(visit.visitType))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(visitTypeColor(visit.visitType).opacity(0.1))
-                                .cornerRadius(20)
-                            }
-                            
-                            Spacer()
-                        }
-                        
-                        Divider()
-                        
-                        // Date & Time
-                        DetailRow(
-                            icon: "calendar",
-                            title: "Fecha y Hora",
-                            content: formatDateRange(visit.startDate, visit.endDate)
-                        )
-                        
-                        // Location
-                        if let location = visit.location, !location.isEmpty {
-                            DetailRow(
-                                icon: "location",
-                                title: "Ubicación",
-                                content: location
-                            )
-                        }
-                        
-                        // Notes
-                        if let notes = visit.notes, !notes.isEmpty {
-                            DetailRow(
-                                icon: "note.text",
-                                title: "Notas",
-                                content: notes
-                            )
-                        }
-                        
-                        // Reminder
-                        if let reminderMinutes = visit.reminderMinutes {
-                            DetailRow(
-                                icon: "bell",
-                                title: "Recordatorio",
-                                content: reminderText(reminderMinutes)
-                            )
-                        }
-                        
-                        // Recurrence
-                        if visit.isRecurring {
-                            DetailRow(
-                                icon: "repeat",
-                                title: "Repetición",
-                                content: "Activa"
-                            )
-                        }
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(16)
-                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-                    
-                    Spacer()
-                }
-                .padding()
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Detalles de la Visita")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cerrar") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Editar") {
-                        onEdit(visit)
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                }
-            }
-        }
-    }
-    
-    private func visitTypeIcon(_ type: AgendaVisitType) -> String {
-        switch type {
-        case .medical: return "cross.fill"
-        case .school: return "book.fill"
-        case .activity: return "figure.run"
-        case .weekend: return "house.fill"
-        case .dinner: return "fork.knife"
-        case .emergency: return "exclamationmark.triangle.fill"
-        case .general: return "calendar"
-        }
-    }
-    
-    private func visitTypeColor(_ type: AgendaVisitType) -> Color {
-        switch type {
-        case .medical: return .red
-        case .school: return .blue
-        case .activity: return .green
-        case .weekend: return .orange
-        case .dinner: return .purple
-        case .emergency: return .pink
-        case .general: return .gray
-        }
-    }
-    
-    private func formatDateRange(_ start: Date, _ end: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .full
-        formatter.timeStyle = .short
-        
-        let calendar = Calendar.current
-        if calendar.isDate(start, inSameDayAs: end) {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateStyle = .full
-            let timeFormatter = DateFormatter()
-            timeFormatter.timeStyle = .short
-            
-            return "\(dateFormatter.string(from: start))\n\(timeFormatter.string(from: start)) - \(timeFormatter.string(from: end))"
-        } else {
-            return "\(formatter.string(from: start))\n\(formatter.string(from: end))"
-        }
-    }
-    
-    private func reminderText(_ minutes: Int) -> String {
-        switch minutes {
-        case 5: return "5 minutos antes"
-        case 15: return "15 minutos antes"
-        case 30: return "30 minutos antes"
-        case 60: return "1 hora antes"
-        case 120: return "2 horas antes"
-        case 1440: return "1 día antes"
-        default: return "\(minutes) minutos antes"
         }
     }
 }

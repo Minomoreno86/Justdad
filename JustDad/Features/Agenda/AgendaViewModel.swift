@@ -127,7 +127,7 @@ final class AgendaViewModel: ObservableObject {
     func goToPreviousMonth() {
         guard let previousMonth = cal.date(byAdding: .month, value: -1, to: currentMonth) else { return }
         currentMonth = previousMonth
-        Task {
+        Task { @MainActor in
             await loadMonth()
         }
     }
@@ -135,7 +135,7 @@ final class AgendaViewModel: ObservableObject {
     func goToNextMonth() {
         guard let nextMonth = cal.date(byAdding: .month, value: 1, to: currentMonth) else { return }
         currentMonth = nextMonth
-        Task {
+        Task { @MainActor in
             await loadMonth()
         }
     }

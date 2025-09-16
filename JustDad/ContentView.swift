@@ -53,6 +53,13 @@ struct ContentView: View {
                             Text("Comunidad")
                         }
                         .tag(4)
+                    
+                    AnalyticsView()
+                        .tabItem {
+                            Image(systemName: "chart.bar.fill")
+                            Text("Analytics")
+                        }
+                        .tag(5)
                 }
             }
         }

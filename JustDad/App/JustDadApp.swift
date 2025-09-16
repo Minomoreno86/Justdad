@@ -38,6 +38,7 @@ struct MainTabView: View {
         case finance = "finance"
         case emotions = "emotions"
         case community = "community"
+        case analytics = "analytics"
         
         var title: String {
             switch self {
@@ -46,6 +47,7 @@ struct MainTabView: View {
             case .finance: return NSLocalizedString("tab_finance", comment: "")
             case .emotions: return NSLocalizedString("tab_emotions", comment: "")
             case .community: return NSLocalizedString("tab_community", comment: "")
+            case .analytics: return NSLocalizedString("tab_analytics", comment: "")
             }
         }
         
@@ -56,6 +58,7 @@ struct MainTabView: View {
             case .finance: return "creditcard.fill"
             case .emotions: return "heart.fill"
             case .community: return "person.3.fill"
+            case .analytics: return "chart.bar.fill"
             }
         }
     }
@@ -98,9 +101,25 @@ struct MainTabView: View {
                         Text(Tab.community.title)
                     }
                     .tag(Tab.community)
+                
+                AnalyticsView()
+                    .tabItem {
+                        Image(systemName: Tab.analytics.icon)
+                        Text(Tab.analytics.title)
+                    }
+                    .tag(Tab.analytics)
             }
-            .accentColor(.blue) // Using SuperDesign primary color
-            .background(Color(red: 0.98, green: 0.98, blue: 1.0)) // Subtle background
+            .accentColor(SuperDesign.Tokens.colors.primary) // Using SuperDesign primary color
+            .background(SuperDesign.Tokens.colors.surfaceGradient) // Professional gradient background
+            .tabViewStyle(.automatic)
+            .overlay(
+                // Professional tab bar enhancement
+                Rectangle()
+                    .fill(SuperDesign.Tokens.colors.primary.opacity(0.1))
+                    .frame(height: 1)
+                    .animation(.easeInOut, value: selectedTab),
+                alignment: .top
+            )
             
             // Enhanced Floating SOS Button (only on Home tab)
             if selectedTab == .home {
