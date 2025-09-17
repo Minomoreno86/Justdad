@@ -157,6 +157,31 @@ public enum CalendarViewMode: String, CaseIterable, Codable {
     }
 }
 
+// MARK: - Visit Filter
+public enum VisitFilter: String, CaseIterable, Codable {
+    case all = "Todos"
+    case today = "Hoy"
+    case week = "Esta semana"
+    case month = "Este mes"
+    case upcoming = "Próximos"
+    case past = "Pasados"
+    
+    public var displayName: String {
+        return self.rawValue
+    }
+    
+    public var icon: String {
+        switch self {
+        case .all: return "calendar"
+        case .today: return "calendar.circle"
+        case .week: return "calendar.day.timeline.leading"
+        case .month: return "calendar.month"
+        case .upcoming: return "calendar.badge.clock"
+        case .past: return "clock.arrow.circlepath"
+        }
+    }
+}
+
 // MARK: - Permission Status
 public enum AgendaPermissionStatus: String, Codable {
     case notDetermined

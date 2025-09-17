@@ -5,6 +5,7 @@ struct EnhancedCalendarMonthView: View {
     @Binding var selectedDate: Date
     let visits: [AgendaVisit]
     let onDateTap: (Date) -> Void
+    let onVisitTap: (AgendaVisit) -> Void
     
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
@@ -23,31 +24,32 @@ struct EnhancedCalendarMonthView: View {
                             isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
                             isToday: calendar.isDateInToday(date),
                             isCurrentMonth: calendar.isDate(date, equalTo: month, toGranularity: .month),
-                            visitCount: visitsCount(for: date),
-                            onTap: { onDateTap(date) }
+                            visits: visitsForDate(date),
+                            onDateTap: { onDateTap(date) },
+                            onVisitTap: onVisitTap
                         )
                     } else {
                         Color.clear
-                            .frame(height: 40)
+                            .frame(height: 50)
                     }
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, SuperDesign.Tokens.space.xs)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, SuperDesign.Tokens.space.xs)
     }
     
     private var weekdayHeaderView: some View {
         HStack {
             ForEach(weekdaySymbols, id: \.self) { symbol in
                 Text(symbol)
-                    .font(.caption)
+                    .font(SuperDesign.Tokens.typography.labelSmall)
                     .fontWeight(.medium)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(SuperDesign.Tokens.colors.textSecondary)
                     .frame(maxWidth: .infinity)
             }
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, SuperDesign.Tokens.space.xs)
     }
     
     private var daysInMonth: [Date?] {
@@ -82,6 +84,12 @@ struct EnhancedCalendarMonthView: View {
         }.count
     }
     
+    private func visitsForDate(_ date: Date) -> [AgendaVisit] {
+        return visits.filter { visit in
+            calendar.isDate(visit.startDate, inSameDayAs: date)
+        }
+    }
+    
     private var weekdaySymbols: [String] {
         let symbols = calendar.shortWeekdaySymbols
         let firstWeekday = calendar.firstWeekday - 1
@@ -94,80 +102,97 @@ struct DayCell: View {
     let isSelected: Bool
     let isToday: Bool
     let isCurrentMonth: Bool
-    let visitCount: Int
-    let onTap: () -> Void
+    let visits: [AgendaVisit]
+    let onDateTap: () -> Void
+    let onVisitTap: (AgendaVisit) -> Void
     
     private let calendar = Calendar.current
     
     var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 2) {
+        VStack(spacing: 2) {
+            // Date number - always tappable
+            Button(action: onDateTap) {
                 Text("\(calendar.component(.day, from: date))")
-                    .font(.system(size: 16, weight: isSelected || isToday ? .semibold : .regular))
+                    .font(SuperDesign.Tokens.typography.bodyMedium)
+                    .fontWeight(isSelected || isToday ? .semibold : .regular)
                     .foregroundColor(textColor)
-                
-                // Visit indicator dots
-                if visitCount > 0 {
-                    HStack(spacing: 2) {
-                        ForEach(0..<min(visitCount, 3), id: \.self) { _ in
-                            Circle()
-                                .fill(Color.blue)
-                                .frame(width: 4, height: 4)
-                        }
-                        
-                        if visitCount > 3 {
-                            Text("+")
-                                .font(.caption2)
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    .frame(height: 6)
-                } else {
-                    Color.clear
-                        .frame(height: 6)
-                }
+                    .frame(maxWidth: .infinity)
             }
-            .frame(height: 40)
-            .frame(maxWidth: .infinity)
-            .background(backgroundColor)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(borderColor, lineWidth: isSelected ? 2 : 0)
-            )
-            .cornerRadius(8)
+            .buttonStyle(PlainButtonStyle())
+            
+            // Visit indicators - just dots
+            if !visits.isEmpty {
+                HStack(spacing: 2) {
+                    ForEach(visits.prefix(4), id: \.id) { visit in
+                        Circle()
+                            .fill(visitTypeColor(visit.visitType))
+                            .frame(width: 6, height: 6)
+                    }
+                    
+                    if visits.count > 4 {
+                        Text("+\(visits.count - 4)")
+                            .font(SuperDesign.Tokens.typography.labelSmall)
+                            .foregroundColor(SuperDesign.Tokens.colors.textSecondary)
+                            .fontWeight(.medium)
+                    }
+                }
+                .frame(height: 8)
+            } else {
+                Color.clear
+                    .frame(height: 8)
+            }
         }
-        .buttonStyle(PlainButtonStyle())
+        .frame(height: 50)
+        .frame(maxWidth: .infinity)
+        .background(backgroundColor)
+        .overlay(
+            RoundedRectangle(cornerRadius: SuperDesign.Tokens.effects.cornerRadius)
+                .stroke(borderColor, lineWidth: isSelected ? SuperDesign.Tokens.effects.borderWidthThick : 0)
+        )
+        .cornerRadius(SuperDesign.Tokens.effects.cornerRadius)
+    }
+    
+    private func visitTypeColor(_ type: AgendaVisitType) -> Color {
+        switch type {
+        case .medical: return SuperDesign.Tokens.colors.error
+        case .school: return SuperDesign.Tokens.colors.info
+        case .activity: return SuperDesign.Tokens.colors.success
+        case .weekend: return SuperDesign.Tokens.colors.warning
+        case .dinner: return SuperDesign.Tokens.colors.accent
+        case .emergency: return SuperDesign.Tokens.colors.error
+        case .general: return SuperDesign.Tokens.colors.primary
+        }
     }
     
     private var textColor: Color {
         if !isCurrentMonth {
-            return .gray.opacity(0.4)
+            return SuperDesign.Tokens.colors.textTertiary.opacity(0.4)
         } else if isSelected {
-            return .white
+            return SuperDesign.Tokens.colors.surface
         } else if isToday {
-            return .blue
+            return SuperDesign.Tokens.colors.primary
         } else {
-            return .primary
+            return SuperDesign.Tokens.colors.textPrimary
         }
     }
     
     private var backgroundColor: Color {
         if isSelected {
-            return .blue
+            return SuperDesign.Tokens.colors.primary
         } else if isToday {
-            return .blue.opacity(0.1)
+            return SuperDesign.Tokens.colors.primary.opacity(SuperDesign.Tokens.effects.opacitySubtle)
         } else {
-            return .clear
+            return SuperDesign.Tokens.colors.surface
         }
     }
     
     private var borderColor: Color {
         if isSelected {
-            return .blue
+            return SuperDesign.Tokens.colors.primary
         } else if isToday {
-            return .blue
+            return SuperDesign.Tokens.colors.primary
         } else {
-            return .clear
+            return SuperDesign.Tokens.colors.border
         }
     }
 }
@@ -179,7 +204,8 @@ struct DayCell: View {
         month: Date(),
         selectedDate: .constant(Date()),
         visits: [],
-        onDateTap: { _ in }
+        onDateTap: { _ in },
+        onVisitTap: { _ in }
     )
 }
 
@@ -203,6 +229,7 @@ struct DayCell: View {
         month: Date(),
         selectedDate: $selectedDate,
         visits: sampleVisits,
-        onDateTap: { _ in }
+        onDateTap: { _ in },
+        onVisitTap: { _ in }
     )
 }

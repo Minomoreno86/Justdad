@@ -2,7 +2,7 @@
 //  PrimaryButton.swift
 //  JustDad - Primary button component
 //
-//  Consistent primary button styling across the app
+//  Consistent primary button styling using SuperDesign System
 //
 
 import SwiftUI
@@ -13,15 +13,18 @@ struct PrimaryButton: View {
     let isEnabled: Bool
     let isLoading: Bool
     let fullWidth: Bool
+    let icon: String?
     
     init(
         _ title: String,
+        icon: String? = nil,
         isEnabled: Bool = true,
         isLoading: Bool = false,
         fullWidth: Bool = true,
         action: @escaping () -> Void
     ) {
         self.title = title
+        self.icon = icon
         self.isEnabled = isEnabled
         self.isLoading = isLoading
         self.fullWidth = fullWidth
@@ -29,27 +32,14 @@ struct PrimaryButton: View {
     }
     
     var body: some View {
-        Button(action: action) {
-            HStack {
-                if isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .scaleEffect(0.8)
-                }
-                
-                Text(title)
-                    .font(.body.weight(.medium))
-                    .foregroundColor(.white)
-            }
-            .frame(maxWidth: fullWidth ? .infinity : nil)
-            .frame(height: 50)
-            .background(
-                isEnabled ? Color.blue : Color.gray
-            )
-            .cornerRadius(12)
-        }
-        .disabled(!isEnabled || isLoading)
-        .opacity(isEnabled ? 1.0 : 0.6)
+        SuperDesign.Components.primaryButton(
+            title: title,
+            icon: icon,
+            isLoading: isLoading,
+            isEnabled: isEnabled,
+            fullWidth: fullWidth,
+            action: action
+        )
         .accessibilityLabel(title)
         .accessibilityHint(isEnabled ? "Tap to \(title.lowercased())" : "Button is disabled")
     }
@@ -67,6 +57,10 @@ struct PrimaryButton: View {
         
         PrimaryButton("Disabled", isEnabled: false) {
             print("Disabled button tapped")
+        }
+        
+        PrimaryButton("With Icon", icon: "plus") {
+            print("Icon button tapped")
         }
         
         PrimaryButton("Compact", fullWidth: false) {

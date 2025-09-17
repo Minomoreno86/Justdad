@@ -2,35 +2,33 @@
 //  Card.swift
 //  JustDad - Card component
 //
-//  Reusable card container with consistent styling
+//  Reusable card container using SuperDesign System
 //
 
 import SwiftUI
 
 struct Card<Content: View>: View {
     let content: Content
-    let padding: CGFloat
-    let backgroundColor: Color
-    let shadowRadius: CGFloat
+    let elevation: SuperElevation
+    let padding: CGFloat?
     
     init(
-        padding: CGFloat = 16,
-        backgroundColor: Color = Color.white,
-        shadowRadius: CGFloat = 2,
+        elevation: SuperElevation = .medium,
+        padding: CGFloat? = nil,
         @ViewBuilder content: () -> Content
     ) {
+        self.elevation = elevation
         self.padding = padding
-        self.backgroundColor = backgroundColor
-        self.shadowRadius = shadowRadius
         self.content = content()
     }
     
     var body: some View {
-        content
-            .padding(padding)
-            .background(backgroundColor)
-            .cornerRadius(12)
-            .shadow(color: .black.opacity(0.1), radius: shadowRadius, x: 0, y: 1)
+        SuperDesign.Components.card(
+            elevation: elevation,
+            padding: padding
+        ) {
+            content
+        }
     }
 }
 
@@ -38,11 +36,15 @@ struct Card<Content: View>: View {
     VStack(spacing: 16) {
         Card {
             VStack {
-                Text("Custom Card Content")
-                    .font(.headline)
-                Text("This is a custom card with any content")
-                    .font(.body)
-                    .foregroundColor(.secondary)
+                SuperDesign.Components.heading("Card Title", size: .medium)
+                SuperDesign.Components.body("This is a card with SuperDesign System styling", size: .medium)
+            }
+        }
+        
+        Card(elevation: .high, padding: 20) {
+            VStack {
+                SuperDesign.Components.heading("Elevated Card", size: .medium)
+                SuperDesign.Components.body("This card has high elevation and custom padding", size: .medium)
             }
         }
     }

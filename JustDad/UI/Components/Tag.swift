@@ -2,7 +2,7 @@
 //  Tag.swift
 //  JustDad - Tag component for categories and labels
 //
-//  Small tag component for categorization
+//  Small tag component using SuperDesign System
 //
 
 import SwiftUI
@@ -18,41 +18,64 @@ struct Tag: View {
         
         var font: Font {
             switch self {
-            case .small: return .caption2
-            case .medium: return .caption
-            case .large: return .footnote
+            case .small: return SuperDesign.Tokens.typography.labelSmall
+            case .medium: return SuperDesign.Tokens.typography.labelMedium
+            case .large: return SuperDesign.Tokens.typography.labelLarge
             }
         }
         
         var padding: EdgeInsets {
             switch self {
-            case .small: return EdgeInsets(top: 2, leading: 6, bottom: 2, trailing: 6)
-            case .medium: return EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8)
-            case .large: return EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12)
+            case .small: return EdgeInsets(
+                top: SuperDesign.Tokens.space.xxs,
+                leading: SuperDesign.Tokens.space.xs,
+                bottom: SuperDesign.Tokens.space.xxs,
+                trailing: SuperDesign.Tokens.space.xs
+            )
+            case .medium: return EdgeInsets(
+                top: SuperDesign.Tokens.space.xs,
+                leading: SuperDesign.Tokens.space.sm,
+                bottom: SuperDesign.Tokens.space.xs,
+                trailing: SuperDesign.Tokens.space.sm
+            )
+            case .large: return EdgeInsets(
+                top: SuperDesign.Tokens.space.sm,
+                leading: SuperDesign.Tokens.space.md,
+                bottom: SuperDesign.Tokens.space.sm,
+                trailing: SuperDesign.Tokens.space.md
+            )
+            }
+        }
+        
+        var cornerRadius: CGFloat {
+            switch self {
+            case .small: return SuperDesign.Tokens.effects.cornerRadiusSmall
+            case .medium: return SuperDesign.Tokens.effects.cornerRadius
+            case .large: return SuperDesign.Tokens.effects.cornerRadius
             }
         }
     }
     
     init(
         _ text: String,
-        color: Color = .blue,
+        color: Color = SuperDesign.Tokens.colors.primary,
         backgroundColor: Color? = nil,
         size: TagSize = .medium
     ) {
         self.text = text
         self.color = color
-        self.backgroundColor = backgroundColor ?? color.opacity(0.1)
+        self.backgroundColor = backgroundColor ?? color.opacity(SuperDesign.Tokens.effects.opacitySubtle)
         self.size = size
     }
     
     var body: some View {
-        Text(text)
+        SuperDesign.Components.body(text, size: .small)
             .font(size.font)
             .fontWeight(.medium)
             .foregroundColor(color)
             .padding(size.padding)
             .background(backgroundColor)
-            .cornerRadius(size == .small ? 4 : 6)
+            .cornerRadius(size.cornerRadius)
     }
 }
 
@@ -62,12 +85,12 @@ struct CategoryTag: View {
     
     var color: Color {
         switch category.lowercased() {
-        case "education", "educación": return .blue
-        case "health", "salud": return .red
-        case "food", "alimentación": return .green
-        case "transport", "transporte": return .purple
-        case "entertainment", "entretenimiento": return .orange
-        default: return .gray
+        case "education", "educación": return SuperDesign.Tokens.colors.info
+        case "health", "salud": return SuperDesign.Tokens.colors.error
+        case "food", "alimentación": return SuperDesign.Tokens.colors.success
+        case "transport", "transporte": return SuperDesign.Tokens.colors.primary
+        case "entertainment", "entretenimiento": return SuperDesign.Tokens.colors.warning
+        default: return SuperDesign.Tokens.colors.textSecondary
         }
     }
     
@@ -82,39 +105,73 @@ struct MoodTag: View {
     let emoji: String
     
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: SuperDesign.Tokens.space.xxs) {
             Text(emoji)
-                .font(.caption)
+                .font(SuperDesign.Tokens.typography.labelSmall)
             
-            Text(mood)
-                .font(.caption)
+            SuperDesign.Components.body(mood, size: .small)
                 .fontWeight(.medium)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(12)
+        .padding(.horizontal, SuperDesign.Tokens.space.sm)
+        .padding(.vertical, SuperDesign.Tokens.space.xs)
+        .background(SuperDesign.Tokens.colors.surfaceSecondary)
+        .cornerRadius(SuperDesign.Tokens.effects.cornerRadiusSmall)
+    }
+}
+
+// MARK: - Status Tags
+struct StatusTag: View {
+    let status: String
+    let isActive: Bool
+    
+    var color: Color {
+        isActive ? SuperDesign.Tokens.colors.success : SuperDesign.Tokens.colors.textSecondary
+    }
+    
+    var body: some View {
+        HStack(spacing: SuperDesign.Tokens.space.xxs) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            
+            SuperDesign.Components.body(status, size: .small)
+                .fontWeight(.medium)
+                .foregroundColor(color)
+        }
+        .padding(.horizontal, SuperDesign.Tokens.space.sm)
+        .padding(.vertical, SuperDesign.Tokens.space.xs)
+        .background(color.opacity(SuperDesign.Tokens.effects.opacitySubtle))
+        .cornerRadius(SuperDesign.Tokens.effects.cornerRadiusSmall)
     }
 }
 
 #Preview {
-    VStack(spacing: 16) {
+    VStack(spacing: SuperDesign.Tokens.space.lg) {
+        // Basic tags
         HStack {
-            Tag("Small", size: .small)
-            Tag("Medium")
-            Tag("Large", size: .large)
+            Tag("Pequeño", size: .small)
+            Tag("Mediano")
+            Tag("Grande", size: .large)
         }
         
+        // Category tags
         HStack {
-            CategoryTag(category: "Education")
-            CategoryTag(category: "Health")
-            CategoryTag(category: "Food")
+            CategoryTag(category: "Educación")
+            CategoryTag(category: "Salud")
+            CategoryTag(category: "Alimentación")
         }
         
+        // Mood tags
         HStack {
-            MoodTag(mood: "Happy", emoji: "😊")
-            MoodTag(mood: "Sad", emoji: "😔")
+            MoodTag(mood: "Feliz", emoji: "😊")
+            MoodTag(mood: "Triste", emoji: "😔")
             MoodTag(mood: "Neutral", emoji: "😐")
+        }
+        
+        // Status tags
+        HStack {
+            StatusTag(status: "Activo", isActive: true)
+            StatusTag(status: "Inactivo", isActive: false)
         }
     }
     .padding()

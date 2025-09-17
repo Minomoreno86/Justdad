@@ -2,7 +2,7 @@
 //  SecondaryButton.swift
 //  JustDad - Secondary button component
 //
-//  Secondary button with outline styling
+//  Secondary button with outline styling using SuperDesign System
 //
 
 import SwiftUI
@@ -12,35 +12,32 @@ struct SecondaryButton: View {
     let action: () -> Void
     let isEnabled: Bool
     let fullWidth: Bool
+    let icon: String?
     
     init(
         _ title: String,
+        icon: String? = nil,
         isEnabled: Bool = true,
         fullWidth: Bool = true,
         action: @escaping () -> Void
     ) {
         self.title = title
+        self.icon = icon
         self.isEnabled = isEnabled
         self.fullWidth = fullWidth
         self.action = action
     }
     
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.body.weight(.medium))
-                .foregroundColor(isEnabled ? .blue : .gray)
-                .frame(maxWidth: fullWidth ? .infinity : nil)
-                .frame(height: 50)
-                .background(Color.clear)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isEnabled ? Color.blue : Color.gray, lineWidth: 2)
-                )
-        }
-        .disabled(!isEnabled)
-        .opacity(isEnabled ? 1.0 : 0.6)
+        SuperDesign.Components.secondaryButton(
+            title: title,
+            icon: icon,
+            isEnabled: isEnabled,
+            fullWidth: fullWidth,
+            action: action
+        )
         .accessibilityLabel(title)
+        .accessibilityHint(isEnabled ? "Tap to \(title.lowercased())" : "Button is disabled")
     }
 }
 
@@ -50,8 +47,16 @@ struct SecondaryButton: View {
             print("Secondary button tapped")
         }
         
+        SecondaryButton("With Icon", icon: "arrow.right") {
+            print("Icon secondary button tapped")
+        }
+        
         SecondaryButton("Disabled", isEnabled: false) {
             print("Disabled secondary button tapped")
+        }
+        
+        SecondaryButton("Compact", fullWidth: false) {
+            print("Compact secondary button tapped")
         }
     }
     .padding()

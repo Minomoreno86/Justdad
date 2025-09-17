@@ -15,6 +15,9 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
     // MARK: - Published state
     @Published var permissionStatus: AgendaPermissionStatus = .notDetermined
     @Published var notificationPermissionGranted: Bool = false
+    @Published var selectedCalendar: EKCalendar?
+    @Published var isSyncing: Bool = false
+    @Published var lastSyncDate: Date?
 
     // MARK: - Private
     private let eventStore = EKEventStore()
@@ -23,13 +26,48 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
     private let subject = CurrentValueSubject<[AgendaVisit], Never>([])
     private var cancellables = Set<AnyCancellable>()
 
+    // Services
+    private let permissionService = EventKitPermissionService()
+    private let calendarManagementService = CalendarManagementService.shared
+    private let bidirectionalSyncService = BidirectionalSyncService.shared
+    private let errorHandler = EventKitErrorHandler.shared
+
     // Minimal in-memory fallback (no depende de otras clases)
     private var memoryStore: [AgendaVisit] = []
 
     // MARK: - Init
     init() {
+        setupServices()
         checkCurrentPermissions()
         requestNotificationPermission()
+        setupCalendarMonitoring()
+    }
+    
+    // MARK: - Setup
+    private func setupServices() {
+        // Setup calendar monitoring
+        NotificationCenter.default.publisher(for: .EKEventStoreChanged)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.handleCalendarChange()
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func setupCalendarMonitoring() {
+        Task {
+            do {
+                // Try to get or create JustDad calendar
+                selectedCalendar = try await calendarManagementService.getJustDadCalendar()
+            } catch {
+                // Fallback to first available calendar
+                let calendars = try await calendarManagementService.getAvailableCalendars()
+                if let firstWritable = calendars.first(where: { $0.isWritable }) {
+                    selectedCalendar = eventStore.calendar(withIdentifier: firstWritable.id)
+                }
+            }
+        }
     }
 
     // MARK: - AgendaRepositoryProtocol (AgendaVisit API)
@@ -44,7 +82,10 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
         }
 
         cachedRange = dateRange
-        let predicate = eventStore.predicateForEvents(withStart: dateRange.start, end: dateRange.end, calendars: nil)
+        
+        // Use selected calendar if available, otherwise use all calendars
+        let calendars = selectedCalendar != nil ? [selectedCalendar!] : nil
+        let predicate = eventStore.predicateForEvents(withStart: dateRange.start, end: dateRange.end, calendars: calendars)
         let events = eventStore.events(matching: predicate)
         
         return events.map(Self.mapToAgendaVisit(_:))
@@ -69,9 +110,12 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
             return newVisit
         }
         
+        isSyncing = true
+        defer { isSyncing = false }
+
         let event = EKEvent(eventStore: eventStore)
         Self.fill(event: event, from: visit)
-        event.calendar = eventStore.defaultCalendarForNewEvents
+        event.calendar = selectedCalendar ?? eventStore.defaultCalendarForNewEvents
 
         // Alarma (si hay reminder)
         if let minutes = visit.reminderMinutes {
@@ -94,8 +138,10 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
                 await scheduleNotification(for: saved, minutesBefore: minutes)
             }
             
+            lastSyncDate = Date()
             return saved
         } catch {
+            errorHandler.handle(error: error)
             // Fallback in-memory si falla EventKit
             memoryStore.insert(visit, at: 0)
             return visit
@@ -111,6 +157,9 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
             return visit
         }
         
+        isSyncing = true
+        defer { isSyncing = false }
+
         guard let eventId = visit.eventKitIdentifier,
               let event = eventStore.event(withIdentifier: eventId) else {
             throw AgendaError.visitNotFound
@@ -136,9 +185,15 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
             event.recurrenceRules = nil
         }
         
-        try eventStore.save(event, span: .thisEvent)
-        reloadCachedRange()
-        return visit
+        do {
+            try eventStore.save(event, span: .thisEvent)
+            lastSyncDate = Date()
+            reloadCachedRange()
+            return visit
+        } catch {
+            errorHandler.handle(error: error)
+            throw AgendaError.visitNotFound
+        }
     }
     
     func deleteVisit(_ visitId: UUID) async throws {
@@ -150,6 +205,9 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
             return
         }
         
+        isSyncing = true
+        defer { isSyncing = false }
+
         let range = cachedRange ?? DateInterval(
             start: calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date(),
             end:   calendar.date(byAdding: .year, value:  1, to: Date()) ?? Date()
@@ -164,9 +222,10 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
             do {
                 try eventStore.remove(event, span: .thisEvent)
                 UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [visitId.uuidString])
+                lastSyncDate = Date()
                 reloadCachedRange()
             } catch {
-                // Ignorar en MVP
+                errorHandler.handle(error: error)
             }
         } else {
             // Si no se encontró, elimina de memoria por si estuviera en fallback
@@ -175,17 +234,7 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
     }
 
     func requestCalendarPermission() async throws {
-        let granted = await withCheckedContinuation { cont in
-            if #available(iOS 17.0, *) {
-                eventStore.requestFullAccessToEvents { granted, error in
-                    cont.resume(returning: granted && (error == nil))
-                }
-            } else {
-                eventStore.requestAccess(to: .event) { granted, error in
-                    cont.resume(returning: granted && (error == nil))
-                }
-            }
-        }
+        let granted = await permissionService.requestCalendarPermission()
         permissionStatus = granted ? .authorized : .denied
         if !granted { throw AgendaError.permissionDenied }
     }
@@ -193,7 +242,7 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
     // MARK: - Permissions
 
     private func checkCurrentPermissions() {
-        permissionStatus = AgendaPermissionStatus.from(ekStatus: EKEventStore.authorizationStatus(for: .event))
+        permissionStatus = AgendaPermissionStatus.from(ekStatus: permissionService.calendarPermissionStatus)
     }
 
     private func requestNotificationPermission() {
@@ -294,5 +343,45 @@ final class EventKitAgendaRepository: ObservableObject, @preconcurrency AgendaRe
     private func reloadCachedRange() {
         guard let range = cachedRange else { return }
         Task { _ = try? await getVisits(in: range) }
+    }
+    
+    // MARK: - Calendar Change Handling
+    
+    private func handleCalendarChange() async {
+        // Refresh calendar list
+        do {
+            _ = try await calendarManagementService.getAvailableCalendars()
+        } catch {
+            errorHandler.handle(error: error)
+        }
+        
+        // Reload cached data
+        reloadCachedRange()
+    }
+    
+    // MARK: - Public Methods for Calendar Management
+    
+    func selectCalendar(_ calendar: EKCalendar?) async {
+        selectedCalendar = calendar
+        if let calendar = calendar {
+            try? await calendarManagementService.selectCalendar(calendar)
+        }
+        reloadCachedRange()
+    }
+    
+    func getSelectedCalendar() -> EKCalendar? {
+        return selectedCalendar
+    }
+    
+    func refreshCalendars() async {
+        do {
+            _ = try await calendarManagementService.getAvailableCalendars()
+            // Try to maintain current selection
+            if let currentId = selectedCalendar?.calendarIdentifier {
+                selectedCalendar = eventStore.calendar(withIdentifier: currentId)
+            }
+        } catch {
+            errorHandler.handle(error: error)
+        }
     }
 }
