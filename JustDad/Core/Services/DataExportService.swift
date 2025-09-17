@@ -1,209 +1,338 @@
 //
 //  DataExportService.swift
-//  SoloPapá - Data export and backup service
+//  JustDad - Data export service
 //
-//  Handles PDF generation, CSV export, and encrypted ZIP creation
+//  Handles data export in various formats (PDF, CSV, JSON)
 //
 
 import Foundation
 import SwiftData
+import PDFKit
+import UniformTypeIdentifiers
 
+// MARK: - Data Models
+struct ExportData {
+    var visits: [Any] = []
+    var financialEntries: [Any] = []
+    var emotionalEntries: [Any] = []
+    var diaryEntries: [Any] = []
+    var emergencyContacts: [Any] = []
+    var exportDate: Date = Date()
+}
+
+@MainActor
 class DataExportService: ObservableObject {
     static let shared = DataExportService()
     
-    // MARK: - Export Options
-    struct ExportOptions {
-        let includePhotos: Bool
-        let includeAudio: Bool
-        let includeDiary: Bool
-        let includeFinances: Bool
-        let includeEmotional: Bool
-        let includeVisits: Bool
-        let format: ExportFormat
+    @Published var isExporting = false
+    @Published var exportProgress: Double = 0.0
+    @Published var lastExportDate: Date?
+    
+    private let persistenceService = PersistenceService.shared
+    private let securityService = SecurityService.shared
+    
+    private init() {}
+    
+    // MARK: - Export Methods
+    func exportToPDF(for dateRange: DateInterval) async throws -> URL {
+        isExporting = true
+        exportProgress = 0.0
         
-        enum ExportFormat {
-            case pdf
-            case csv
-            case encryptedZip
+        defer {
+            isExporting = false
+            exportProgress = 0.0
         }
+        
+        let data = try await gatherAllData(for: dateRange)
+        exportProgress = 0.3
+        
+        let pdfDocument = try await generatePDF(from: data, dateRange: dateRange)
+        exportProgress = 0.7
+        
+        let url = try savePDFToDocuments(pdfDocument)
+        exportProgress = 1.0
+        
+        lastExportDate = Date()
+        return url
     }
     
-    // MARK: - PDF Export
-    func exportToPDF(options: ExportOptions) async -> URL? {
-        // TODO: Implement PDF generation using PDFKit
-        // This should create a comprehensive PDF report with:
-        // - Financial summary with charts
-        // - Visit calendar
-        // - Emotional wellness report
-        // - Optional diary entries (if included)
+    func exportToCSV(for dateRange: DateInterval) async throws -> URL {
+        isExporting = true
+        exportProgress = 0.0
         
-        print("Generating PDF report...")
+        defer {
+            isExporting = false
+            exportProgress = 0.0
+        }
         
-        // Placeholder: Create a simple PDF
+        let data = try await gatherAllData(for: dateRange)
+        exportProgress = 0.5
+        
+        let csvContent = generateCSV(from: data)
+        exportProgress = 0.8
+        
+        let url = try saveCSVToDocuments(csvContent, dateRange: dateRange)
+        exportProgress = 1.0
+        
+        lastExportDate = Date()
+        return url
+    }
+    
+    func exportToJSON(for dateRange: DateInterval) async throws -> URL {
+        isExporting = true
+        exportProgress = 0.0
+        
+        defer {
+            isExporting = false
+            exportProgress = 0.0
+        }
+        
+        let data = try await gatherAllData(for: dateRange)
+        exportProgress = 0.5
+        
+        let jsonData = try JSONSerialization.data(withJSONObject: ["message": "Export data placeholder"], options: .prettyPrinted)
+        exportProgress = 0.8
+        
+        let url = try saveJSONToDocuments(jsonData, dateRange: dateRange)
+        exportProgress = 1.0
+        
+        lastExportDate = Date()
+        return url
+    }
+    
+    // MARK: - Data Gathering
+    private func gatherAllData(for dateRange: DateInterval) async throws -> ExportData {
+        // Simplified data gathering - will be implemented later
+        return ExportData()
+    }
+    
+    // MARK: - PDF Generation
+    private func generatePDF(from data: ExportData, dateRange: DateInterval) async throws -> PDFDocument {
+        let pdfDocument = PDFDocument()
+        
+        // Title page
+        let titlePage = createTitlePage(dateRange: dateRange)
+        pdfDocument.insert(titlePage, at: 0)
+        
+        // Visits page
+        if !data.visits.isEmpty {
+            let visitsPage = createVisitsPage(visits: data.visits)
+            pdfDocument.insert(visitsPage, at: pdfDocument.pageCount)
+        }
+        
+        // Financial page
+        if !data.financialEntries.isEmpty {
+            let financialPage = createFinancialPage(entries: data.financialEntries)
+            pdfDocument.insert(financialPage, at: pdfDocument.pageCount)
+        }
+        
+        // Emotional page
+        if !data.emotionalEntries.isEmpty {
+            let emotionalPage = createEmotionalPage(entries: data.emotionalEntries)
+            pdfDocument.insert(emotionalPage, at: pdfDocument.pageCount)
+        }
+        
+        // Diary page
+        if !data.diaryEntries.isEmpty {
+            let diaryPage = createDiaryPage(entries: data.diaryEntries)
+            pdfDocument.insert(diaryPage, at: pdfDocument.pageCount)
+        }
+        
+        // Emergency contacts page
+        if !data.emergencyContacts.isEmpty {
+            let contactsPage = createEmergencyContactsPage(contacts: data.emergencyContacts)
+            pdfDocument.insert(contactsPage, at: pdfDocument.pageCount)
+        }
+        
+        return pdfDocument
+    }
+    
+    private func createTitlePage(dateRange: DateInterval) -> PDFPage {
+        _ = CGRect(x: 0, y: 0, width: 612, height: 792) // Letter size
+        let page = PDFPage()
+        
+        // This is a simplified version - in a real implementation, you'd use Core Graphics
+        // to draw the content on the PDF page
+        
+        return page
+    }
+    
+    private func createVisitsPage(visits: [Any]) -> PDFPage {
+        let page = PDFPage()
+        // Implementation for visits page
+        return page
+    }
+    
+    private func createFinancialPage(entries: [Any]) -> PDFPage {
+        let page = PDFPage()
+        // Implementation for financial page
+        return page
+    }
+    
+    private func createEmotionalPage(entries: [Any]) -> PDFPage {
+        let page = PDFPage()
+        // Implementation for emotional page
+        return page
+    }
+    
+    private func createDiaryPage(entries: [Any]) -> PDFPage {
+        let page = PDFPage()
+        // Implementation for diary page
+        return page
+    }
+    
+    private func createEmergencyContactsPage(contacts: [Any]) -> PDFPage {
+        let page = PDFPage()
+        // Implementation for emergency contacts page
+        return page
+    }
+    
+    // MARK: - CSV Generation
+    private func generateCSV(from data: ExportData) -> String {
+        var csvContent = "Tipo,Fecha,Título,Descripción,Valor\n"
+        
+        // Simplified CSV generation - will be implemented later
+        csvContent += "Datos,\(Date()),JustDad Export,Exportación de datos,0\n"
+        
+        return csvContent
+    }
+    
+    // MARK: - File Saving
+    private func savePDFToDocuments(_ pdfDocument: PDFDocument) throws -> URL {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let pdfURL = documentsPath.appendingPathComponent("SoloPapa_Report_\(Date().formatted(.iso8601.year().month().day())).pdf")
+        let fileName = "JustDad_Export_\(DateFormatter.fileNameFormatter.string(from: Date())).pdf"
+        let fileURL = documentsPath.appendingPathComponent(fileName)
         
-        // TODO: Replace with actual PDF generation
-        let sampleData = "SoloPapá Report - Generated on \(Date().formatted())\n\nThis is a placeholder for the PDF report.".data(using: .utf8)
-        
-        do {
-            try sampleData?.write(to: pdfURL)
-            return pdfURL
-        } catch {
-            print("Error creating PDF: \(error)")
-            return nil
+        guard pdfDocument.write(to: fileURL) else {
+            throw ExportError.fileWriteFailed
         }
+        
+        return fileURL
     }
     
-    // MARK: - CSV Export
-    func exportToCSV(options: ExportOptions) async -> URL? {
-        // TODO: Implement CSV export for financial data
-        print("Generating CSV export...")
-        
+    private func saveCSVToDocuments(_ csvContent: String, dateRange: DateInterval) throws -> URL {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let csvURL = documentsPath.appendingPathComponent("SoloPapa_Data_\(Date().formatted(.iso8601.year().month().day())).csv")
+        let fileName = "JustDad_Export_\(DateFormatter.fileNameFormatter.string(from: Date())).csv"
+        let fileURL = documentsPath.appendingPathComponent(fileName)
         
-        // Sample CSV structure
-        var csvContent = "Type,Date,Title,Amount,Category,Notes\n"
-        
-        // TODO: Replace with actual data from CoreData
-        csvContent += "Expense,2024-09-08,School supplies,$150.00,Education,Back to school items\n"
-        csvContent += "Expense,2024-09-07,Dinner with kids,$75.00,Food,Pizza night\n"
-        csvContent += "Expense,2024-09-06,Medicine,$45.00,Health,Vitamins\n"
-        
-        do {
-            try csvContent.write(to: csvURL, atomically: true, encoding: .utf8)
-            return csvURL
-        } catch {
-            print("Error creating CSV: \(error)")
-            return nil
-        }
+        try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
+        return fileURL
     }
     
-    // MARK: - Encrypted ZIP Export
-    func exportToEncryptedZip(options: ExportOptions, password: String) async -> URL? {
-        // TODO: Implement encrypted ZIP creation
-        // This should:
-        // 1. Collect all selected data
-        // 2. Create temporary files for export
-        // 3. Compress with password protection
-        // 4. Clean up temporary files
-        
-        print("Creating encrypted ZIP export...")
-        
+    private func saveJSONToDocuments(_ jsonData: Data, dateRange: DateInterval) throws -> URL {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let zipURL = documentsPath.appendingPathComponent("SoloPapa_Backup_\(Date().formatted(.iso8601.year().month().day())).zip")
+        let fileName = "JustDad_Export_\(DateFormatter.fileNameFormatter.string(from: Date())).json"
+        let fileURL = documentsPath.appendingPathComponent(fileName)
         
-        // TODO: Implement actual ZIP creation with encryption
-        // For now, create a placeholder file
-        let placeholderContent = "Encrypted backup placeholder - Password: \(password)"
-        
-        do {
-            try placeholderContent.write(to: zipURL, atomically: true, encoding: .utf8)
-            return zipURL
-        } catch {
-            print("Error creating encrypted ZIP: \(error)")
-            return nil
-        }
-    }
-    
-    // MARK: - Financial Report Generation
-    func generateFinancialReport(startDate: Date, endDate: Date) async -> FinancialReport {
-        // TODO: Query CoreData for financial entries in date range
-        // Calculate totals, categorize expenses, generate insights
-        
-        return FinancialReport(
-            period: DateInterval(start: startDate, end: endDate),
-            totalExpenses: 2450.00,
-            categoryBreakdown: [
-                "Educación": 500.00,
-                "Alimentación": 800.00,
-                "Salud": 350.00,
-                "Entretenimiento": 400.00,
-                "Otros": 400.00
-            ],
-            monthlyAverage: 1225.00,
-            largestExpense: ("Matrícula escolar", 500.00)
-        )
-    }
-    
-    // MARK: - Emotional Wellness Report
-    func generateEmotionalReport(startDate: Date, endDate: Date) async -> EmotionalReport {
-        // TODO: Query CoreData for emotional entries
-        // Calculate mood trends, identify patterns
-        
-        return EmotionalReport(
-            period: DateInterval(start: startDate, end: endDate),
-            averageMood: 3.2,
-            moodTrend: .stable,
-            bestDay: Date(),
-            worstDay: Date(),
-            totalEntries: 25
-        )
+        try jsonData.write(to: fileURL)
+        return fileURL
     }
     
     // MARK: - File Management
-    func cleanupTemporaryFiles() {
-        // TODO: Clean up any temporary files created during export
-        let tempDir = FileManager.default.temporaryDirectory
+    func getExportHistory() -> [ExportFile] {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         
         do {
-            let tempFiles = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
-            for file in tempFiles {
-                if file.lastPathComponent.hasPrefix("SoloPapa_temp_") {
-                    try FileManager.default.removeItem(at: file)
+            let files = try FileManager.default.contentsOfDirectory(at: documentsPath, includingPropertiesForKeys: [.creationDateKey], options: [])
+            let exportFiles = files
+                .filter { $0.pathExtension == "pdf" || $0.pathExtension == "csv" || $0.pathExtension == "json" }
+                .compactMap { url -> ExportFile? in
+                    let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+                    let creationDate = attributes?[.creationDate] as? Date ?? Date()
+                    let fileSize = attributes?[.size] as? Int64 ?? 0
+                    
+                    return ExportFile(
+                        url: url,
+                        name: url.lastPathComponent,
+                        size: fileSize,
+                        creationDate: creationDate,
+                        type: ExportFileType(rawValue: url.pathExtension) ?? .json
+                    )
                 }
-            }
+                .sorted { $0.creationDate > $1.creationDate }
+            
+            return exportFiles
         } catch {
-            print("Error cleaning up temporary files: \(error)")
+            return []
         }
     }
     
-    // MARK: - Export Progress Tracking
-    @Published var exportProgress: Double = 0.0
-    @Published var isExporting: Bool = false
-    
-    func updateProgress(_ progress: Double) {
-        DispatchQueue.main.async {
-            self.exportProgress = progress
-        }
+    func deleteExportFile(_ file: ExportFile) throws {
+        try FileManager.default.removeItem(at: file.url)
     }
     
-    func startExport() {
-        DispatchQueue.main.async {
-            self.isExporting = true
-            self.exportProgress = 0.0
-        }
+    func shareExportFile(_ file: ExportFile) -> [Any] {
+        return [file.url]
     }
+}
+
+// MARK: - Supporting Types
+enum ExportError: LocalizedError {
+    case fileWriteFailed
+    case dataGatheringFailed
+    case pdfGenerationFailed
     
-    func finishExport() {
-        DispatchQueue.main.async {
-            self.isExporting = false
-            self.exportProgress = 1.0
+    var errorDescription: String? {
+        switch self {
+        case .fileWriteFailed:
+            return "No se pudo escribir el archivo"
+        case .dataGatheringFailed:
+            return "No se pudo recopilar los datos"
+        case .pdfGenerationFailed:
+            return "No se pudo generar el PDF"
         }
     }
 }
 
-// MARK: - Report Models
-struct FinancialReport {
-    let period: DateInterval
-    let totalExpenses: Double
-    let categoryBreakdown: [String: Double]
-    let monthlyAverage: Double
-    let largestExpense: (description: String, amount: Double)
+struct ExportFile: Identifiable {
+    let id = UUID()
+    let url: URL
+    let name: String
+    let size: Int64
+    let creationDate: Date
+    let type: ExportFileType
+    
+    var formattedSize: String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: size)
+    }
 }
 
-struct EmotionalReport {
-    let period: DateInterval
-    let averageMood: Double
-    let moodTrend: MoodTrend
-    let bestDay: Date
-    let worstDay: Date
-    let totalEntries: Int
+enum ExportFileType: String, CaseIterable {
+    case pdf = "pdf"
+    case csv = "csv"
+    case json = "json"
     
-    enum MoodTrend {
-        case improving
-        case stable
-        case declining
+    var displayName: String {
+        switch self {
+        case .pdf: return "PDF"
+        case .csv: return "CSV"
+        case .json: return "JSON"
+        }
     }
+    
+    var utType: UTType {
+        switch self {
+        case .pdf: return .pdf
+        case .csv: return .commaSeparatedText
+        case .json: return .json
+        }
+    }
+}
+
+// MARK: - DateFormatter Extensions
+extension DateFormatter {
+    static let csvFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter
+    }()
+    
+    static let fileNameFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        return formatter
+    }()
 }

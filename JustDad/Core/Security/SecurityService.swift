@@ -8,6 +8,7 @@
 import Foundation
 import LocalAuthentication
 import Security
+import CommonCrypto
 
 class SecurityService: ObservableObject {
     static let shared = SecurityService()
@@ -88,24 +89,96 @@ class SecurityService: ObservableObject {
         return status == errSecSuccess
     }
     
-    // MARK: - Encryption/Decryption (Placeholder for SQLCipher integration)
+    // MARK: - Encryption/Decryption
     func generateEncryptionKey() -> String {
-        // TODO: Implement proper key generation for SQLCipher
-        // This should generate a strong encryption key for database encryption
         let keyData = Data((0..<32).map { _ in UInt8.random(in: 0...255) })
         return keyData.base64EncodedString()
     }
     
     func encryptData(_ data: Data, with key: String) -> Data? {
-        // TODO: Implement AES encryption for local file encryption
-        // This is a placeholder - implement proper AES encryption
-        return data
+        guard let keyData = Data(base64Encoded: key) else { return nil }
+        
+        let keyLength = kCCKeySizeAES256
+        let ivLength = kCCBlockSizeAES128
+        
+        guard keyData.count == keyLength else { return nil }
+        
+        let iv = Data((0..<ivLength).map { _ in UInt8.random(in: 0...255) })
+        let cryptLength = size_t(data.count + ivLength)
+        var cryptData = Data(count: cryptLength)
+        
+        let keyLengthSize = size_t(keyLength)
+        let operation: CCOperation = UInt32(kCCEncrypt)
+        let algorithm: CCAlgorithm = UInt32(kCCAlgorithmAES128)
+        let options: CCOptions = UInt32(kCCOptionPKCS7Padding)
+        
+        var numBytesEncrypted: size_t = 0
+        
+        let cryptStatus = cryptData.withUnsafeMutableBytes { cryptBytes in
+            data.withUnsafeBytes { dataBytes in
+                iv.withUnsafeBytes { ivBytes in
+                    keyData.withUnsafeBytes { keyBytes in
+                        CCCrypt(operation,
+                               algorithm,
+                               options,
+                               keyBytes.bindMemory(to: UInt8.self).baseAddress, keyLengthSize,
+                               ivBytes.bindMemory(to: UInt8.self).baseAddress,
+                               dataBytes.bindMemory(to: UInt8.self).baseAddress, data.count,
+                               cryptBytes.bindMemory(to: UInt8.self).baseAddress, cryptLength,
+                               &numBytesEncrypted)
+                    }
+                }
+            }
+        }
+        
+        guard UInt32(cryptStatus) == UInt32(kCCSuccess) else { return nil }
+        
+        // Prepend IV to encrypted data
+        return iv + cryptData.prefix(numBytesEncrypted)
     }
     
     func decryptData(_ encryptedData: Data, with key: String) -> Data? {
-        // TODO: Implement AES decryption for local file decryption
-        // This is a placeholder - implement proper AES decryption
-        return encryptedData
+        guard let keyData = Data(base64Encoded: key) else { return nil }
+        
+        let keyLength = kCCKeySizeAES256
+        let ivLength = kCCBlockSizeAES128
+        
+        guard keyData.count == keyLength,
+              encryptedData.count > ivLength else { return nil }
+        
+        let iv = encryptedData.prefix(ivLength)
+        let dataToDecrypt = encryptedData.dropFirst(ivLength)
+        
+        let cryptLength = size_t(dataToDecrypt.count)
+        var decryptedData = Data(count: cryptLength)
+        
+        let keyLengthSize = size_t(keyLength)
+        let operation: CCOperation = UInt32(kCCDecrypt)
+        let algorithm: CCAlgorithm = UInt32(kCCAlgorithmAES128)
+        let options: CCOptions = UInt32(kCCOptionPKCS7Padding)
+        
+        var numBytesDecrypted: size_t = 0
+        
+        let cryptStatus = decryptedData.withUnsafeMutableBytes { decryptedBytes in
+            dataToDecrypt.withUnsafeBytes { dataBytes in
+                iv.withUnsafeBytes { ivBytes in
+                    keyData.withUnsafeBytes { keyBytes in
+                        CCCrypt(operation,
+                               algorithm,
+                               options,
+                               keyBytes.bindMemory(to: UInt8.self).baseAddress, keyLengthSize,
+                               ivBytes.bindMemory(to: UInt8.self).baseAddress,
+                               dataBytes.bindMemory(to: UInt8.self).baseAddress, dataToDecrypt.count,
+                               decryptedBytes.bindMemory(to: UInt8.self).baseAddress, cryptLength,
+                               &numBytesDecrypted)
+                    }
+                }
+            }
+        }
+        
+        guard UInt32(cryptStatus) == UInt32(kCCSuccess) else { return nil }
+        
+        return decryptedData.prefix(numBytesDecrypted)
     }
     
     // MARK: - App Lock State

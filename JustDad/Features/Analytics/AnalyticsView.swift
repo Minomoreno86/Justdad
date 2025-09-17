@@ -7,10 +7,14 @@ import SwiftUI
 import Charts
 
 struct AnalyticsView: View {
-    @State private var visits: [SimpleVisit] = []
+    @StateObject private var analyticsService = AnalyticsService.shared
+    @StateObject private var persistenceService = PersistenceService.shared
+    @State private var visits: [AgendaVisit] = []
     @State private var isLoading = false
     @State private var selectedPeriod: TimePeriod = .month
     @State private var showingFullReport = false
+    @State private var visitAnalytics: VisitAnalytics?
+    @State private var dashboardMetrics: DashboardMetrics?
     
     enum TimePeriod: String, CaseIterable {
         case week = "Semana"
@@ -332,73 +336,53 @@ struct AnalyticsView: View {
     
     // MARK: - Computed Properties
     private var todayVisitsCount: Int {
-        let today = Calendar.current.startOfDay(for: Date())
-        return visits.filter { visit in
-            Calendar.current.isDate(visit.scheduledDate, inSameDayAs: today)
-        }.count
+        dashboardMetrics?.todayVisits ?? 0
     }
     
     private var thisWeekVisitsCount: Int {
-        let calendar = Calendar.current
-        let weekInterval = calendar.dateInterval(of: .weekOfYear, for: Date())
-        return visits.filter { visit in
-            weekInterval?.contains(visit.scheduledDate) ?? false
-        }.count
+        dashboardMetrics?.thisWeekVisits ?? 0
     }
     
     private var thisMonthVisitsCount: Int {
-        let calendar = Calendar.current
-        let monthInterval = calendar.dateInterval(of: .month, for: Date())
-        return visits.filter { visit in
-            monthInterval?.contains(visit.scheduledDate) ?? false
-        }.count
+        visitAnalytics?.thisMonthVisits ?? 0
     }
     
     private var monthlyData: [MonthlyVisitData] {
-        let calendar = Calendar.current
-        let sixMonthsAgo = calendar.date(byAdding: .month, value: -6, to: Date()) ?? Date()
-        
-        var monthlyGroups: [Date: Int] = [:]
-        
-        for visit in visits where visit.scheduledDate >= sixMonthsAgo {
-            let monthStart = calendar.dateInterval(of: .month, for: visit.scheduledDate)?.start ?? visit.scheduledDate
-            monthlyGroups[monthStart, default: 0] += 1
-        }
-        
-        return monthlyGroups.map { MonthlyVisitData(month: $0.key, count: $0.value) }
-            .sorted { $0.month < $1.month }
+        visitAnalytics?.monthlyTrends.map { trend in
+            MonthlyVisitData(month: trend.month, count: trend.visitCount)
+        } ?? []
     }
     
     private var visitTypeData: [VisitTypeData] {
-        var typeGroups: [SimpleVisitType: Int] = [:]
-        
-        for visit in visits {
-            typeGroups[visit.type, default: 0] += 1
-        }
-        
-        return typeGroups.map { VisitTypeData(type: $0.key, count: $0.value) }
-            .sorted { $0.count > $1.count }
+        visitAnalytics?.visitTypeDistribution.map { (type, count) in
+            VisitTypeData(type: SimpleVisitType.fromAgendaType(type), count: count)
+        }.sorted { $0.count > $1.count } ?? []
     }
     
     private var insights: [AnalyticsInsight] {
+        // Use insights from AnalyticsService if available, otherwise generate basic ones
+        if let analytics = visitAnalytics {
+            return generateInsightsFromAnalytics(analytics)
+        } else {
+            return generateBasicInsights()
+        }
+    }
+    
+    private func generateInsightsFromAnalytics(_ analytics: VisitAnalytics) -> [AnalyticsInsight] {
         var insightsList: [AnalyticsInsight] = []
         
         // Total visits insight
-        insightsList.append(AnalyticsInsight(
-            title: "Total de Visitas",
-            description: "Has registrado \(visits.count) visitas en total",
-            icon: "calendar.badge.checkmark",
-            color: .blue
-        ))
+        if analytics.totalVisits > 0 {
+            insightsList.append(AnalyticsInsight(
+                title: "Total de Visitas",
+                description: "Has registrado \(analytics.totalVisits) visitas en total",
+                icon: "calendar.badge.checkmark",
+                color: .blue
+            ))
+        }
         
-        // This month comparison
-        let lastMonth = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
-        let lastMonthInterval = Calendar.current.dateInterval(of: .month, for: lastMonth)
-        let lastMonthCount = visits.filter { visit in
-            lastMonthInterval?.contains(visit.scheduledDate) ?? false
-        }.count
-        
-        let monthlyChange = thisMonthVisitsCount - lastMonthCount
+        // Monthly change insight
+        let monthlyChange = analytics.thisMonthVisits - analytics.lastMonthVisits
         if monthlyChange > 0 {
             insightsList.append(AnalyticsInsight(
                 title: "Tendencia Positiva",
@@ -415,39 +399,82 @@ struct AnalyticsView: View {
             ))
         }
         
-        // Favorite visit type
-        if let favoriteType = visitTypeData.first {
+        // Average duration insight
+        if analytics.averageDurationMinutes > 0 {
+            let hours = analytics.averageDurationMinutes / 60
+            let minutes = analytics.averageDurationMinutes % 60
+            let durationText = hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m"
             insightsList.append(AnalyticsInsight(
-                title: "Tipo Favorito",
-                description: "\(favoriteType.type.displayName) es tu actividad más frecuente (\(favoriteType.count) veces)",
-                icon: "heart.fill",
-                color: .pink
+                title: "Duración Promedio",
+                description: "Tus visitas duran en promedio \(durationText)",
+                icon: "clock.fill",
+                color: .purple
             ))
         }
         
         return insightsList
     }
     
+    private func generateBasicInsights() -> [AnalyticsInsight] {
+        return [
+            AnalyticsInsight(
+                title: "Sin Datos",
+                description: "No hay datos suficientes para generar insights",
+                icon: "exclamationmark.triangle.fill",
+                color: .gray
+            )
+        ]
+    }
+    
     // MARK: - Helper Methods
     private func loadAnalytics() async {
-        // Simular carga de datos con algunos datos de ejemplo
-        let sampleVisits = [
-            SimpleVisit(scheduledDate: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
-                       type: .parque, title: "Visita al parque"),
-            SimpleVisit(scheduledDate: Calendar.current.date(byAdding: .day, value: -3, to: Date()) ?? Date(),
-                       type: .cine, title: "Película familiar"),
-            SimpleVisit(scheduledDate: Calendar.current.date(byAdding: .weekOfYear, value: -1, to: Date()) ?? Date(),
-                       type: .casa, title: "Tiempo en casa"),
-            SimpleVisit(scheduledDate: Calendar.current.date(byAdding: .weekOfYear, value: -2, to: Date()) ?? Date(),
-                       type: .restaurante, title: "Almuerzo especial"),
-            SimpleVisit(scheduledDate: Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date(),
-                       type: .escuela, title: "Evento escolar")
-        ]
+        isLoading = true
+        
+        // For now, use sample data until proper data integration
+        let sampleVisits = createSampleVisits()
         
         await MainActor.run {
             visits = sampleVisits
+            visitAnalytics = analyticsService.getVisitAnalytics(visits: sampleVisits)
+            dashboardMetrics = analyticsService.getDashboardMetrics(visits: sampleVisits)
             isLoading = false
         }
+    }
+    
+    private func createSampleVisits() -> [AgendaVisit] {
+        // Create sample data for demonstration
+        let calendar = Calendar.current
+        let now = Date()
+        
+        return [
+            AgendaVisit(
+                id: UUID(),
+                title: "Visita al parque",
+                startDate: calendar.date(byAdding: .day, value: -1, to: now) ?? now,
+                endDate: calendar.date(byAdding: .hour, value: 2, to: calendar.date(byAdding: .day, value: -1, to: now) ?? now) ?? now,
+                location: "Parque Central",
+                notes: "Tiempo de calidad con los niños",
+                visitType: .activity
+            ),
+            AgendaVisit(
+                id: UUID(),
+                title: "Cena familiar",
+                startDate: calendar.date(byAdding: .day, value: -3, to: now) ?? now,
+                endDate: calendar.date(byAdding: .hour, value: 1, to: calendar.date(byAdding: .day, value: -3, to: now) ?? now) ?? now,
+                location: "Casa",
+                notes: "Cena especial en casa",
+                visitType: .dinner
+            ),
+            AgendaVisit(
+                id: UUID(),
+                title: "Actividad escolar",
+                startDate: calendar.date(byAdding: .weekOfYear, value: -1, to: now) ?? now,
+                endDate: calendar.date(byAdding: .hour, value: 3, to: calendar.date(byAdding: .weekOfYear, value: -1, to: now) ?? now) ?? now,
+                location: "Escuela Primaria",
+                notes: "Evento escolar importante",
+                visitType: .school
+            )
+        ]
     }
     
     private func generateFullReport() {
@@ -483,9 +510,22 @@ enum SimpleVisitType: String, CaseIterable {
     case casa = "Casa"
     case restaurante = "Restaurante"
     case escuela = "Escuela"
+    case other = "Otro"
     
     var displayName: String {
         return self.rawValue
+    }
+    
+    static func fromAgendaType(_ agendaType: AgendaVisitType) -> SimpleVisitType {
+        switch agendaType {
+        case .activity: return .parque
+        case .dinner: return .restaurante
+        case .school: return .escuela
+        case .weekend: return .casa
+        case .medical: return .other
+        case .emergency: return .other
+        case .general: return .other
+        }
     }
 }
 

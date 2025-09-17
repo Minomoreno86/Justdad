@@ -180,3 +180,222 @@
 "Location" = "Location";
 "Save" = "Save";
 "Cancel" = "Cancel";
+
+// MARK: - Error Messages
+"error.title" = "Error";
+"error.network" = "Connection Error";
+"error.network.message" = "Check your internet connection and try again";
+"error.validation" = "Validation Error";
+"error.validation.message" = "Review the entered data and correct the errors";
+"error.persistence" = "Data Error";
+"error.persistence.message" = "Could not save data. Please try again";
+"error.security" = "Security Error";
+"error.security.message" = "Authentication error. Please try again";
+"error.unknown" = "Unknown Error";
+"error.unknown.message" = "An unexpected error occurred. Please try again";
+"error.permission" = "Insufficient Permissions";
+"error.permission.message" = "Go to Settings and grant the necessary permissions";
+"error.storage" = "Insufficient Storage";
+"error.storage.message" = "Free up space on your device";
+"error.retry" = "Retry";
+"error.dismiss" = "Dismiss";
+
+// MARK: - Validation Messages
+"validation.required" = "This field is required";
+"validation.title.max_length" = "Title cannot exceed 100 characters";
+"validation.location.max_length" = "Location cannot exceed 200 characters";
+"validation.notes.max_length" = "Notes cannot exceed 1000 characters";
+"validation.amount.positive" = "Amount must be greater than zero";
+"validation.amount.max" = "Amount cannot exceed $999,999.99";
+"validation.date.future" = "Cannot create visits in the past";
+"validation.date.range" = "End date must be after start date";
+"validation.phone.invalid" = "Phone number is not valid";
+"validation.email.invalid" = "Email address is not valid";
+
+// MARK: - Success Messages
+"success.saved" = "Saved successfully";
+"success.deleted" = "Deleted successfully";
+"success.updated" = "Updated successfully";
+"success.exported" = "Exported successfully";
+"success.backup" = "Backup created successfully";
+
+// MARK: - Loading States
+"loading.title" = "Loading...";
+"loading.saving" = "Saving...";
+"loading.deleting" = "Deleting...";
+"loading.exporting" = "Exporting...";
+"loading.backing_up" = "Creating backup...";
+"loading.syncing" = "Syncing...";
+
+// MARK: - Confirmation Dialogs
+"confirm.delete.title" = "Confirm Deletion";
+"confirm.delete.message" = "Are you sure you want to delete this item?";
+"confirm.delete.visit" = "Are you sure you want to delete this visit?";
+"confirm.delete.entry" = "Are you sure you want to delete this entry?";
+"confirm.delete.contact" = "Are you sure you want to delete this contact?";
+"confirm.clear_data.title" = "Clear All Data";
+"confirm.clear_data.message" = "Are you sure you want to delete all data? This action cannot be undone.";
+"confirm.export.title" = "Export Data";
+"confirm.export.message" = "Do you want to export all your data?";
+"confirm.logout.title" = "Sign Out";
+"confirm.logout.message" = "Are you sure you want to sign out?";
+
+// MARK: - Settings
+"settings.title" = "Settings";
+"settings.privacy" = "Privacy";
+"settings.notifications" = "Notifications";
+"settings.backup" = "Backup";
+"settings.export" = "Export";
+"settings.about" = "About";
+"settings.version" = "Version";
+"settings.build" = "Build";
+"settings.support" = "Support";
+"settings.rate_app" = "Rate App";
+"settings.share_app" = "Share App";
+"settings.terms" = "Terms of Service";
+"settings.privacy_policy" = "Privacy Policy";
+
+// MARK: - Notifications Settings
+"notifications.title" = "Notifications";
+"notifications.enabled" = "Notifications enabled";
+"notifications.visit_reminders" = "Visit reminders";
+"notifications.daily_reminder" = "Daily reminder";
+"notifications.weekly_summary" = "Weekly summary";
+"notifications.backup_reminder" = "Backup reminder";
+"notifications.emergency_checkin" = "Emergency check-in";
+
+// MARK: - Privacy Settings
+"privacy.title" = "Privacy";
+"privacy.biometric_auth" = "Biometric authentication";
+"privacy.app_lock" = "App lock";
+"privacy.data_encryption" = "Data encryption";
+"privacy.analytics" = "Usage analytics";
+"privacy.crash_reports" = "Crash reports";
+"privacy.clear_data" = "Clear all data";
+
+// MARK: - Backup Settings
+"backup.title" = "Backup";
+"backup.auto_backup" = "Automatic backup";
+"backup.last_backup" = "Last backup";
+"backup.create_backup" = "Create backup";
+"backup.restore_backup" = "Restore backup";
+"backup.export_data" = "Export data";
+"backup.import_data" = "Import data";
+
+// MARK: - Export Options
+"export.title" = "Export Data";
+"export.format" = "Format";
+"export.pdf" = "PDF";
+"export.csv" = "CSV";
+"export.json" = "JSON";
+"export.date_range" = "Date Range";
+"export.all_data" = "All data";
+"export.last_month" = "Last month";
+"export.last_3_months" = "Last 3 months";
+"export.last_6_months" = "Last 6 months";
+"export.last_year" = "Last year";
+"export.custom_range" = "Custom range";
+
+// MARK: - Analytics
+"analytics.title" = "Analytics";
+"analytics.overview" = "Overview";
+"analytics.visits" = "Visits";
+"analytics.finances" = "Finances";
+"analytics.emotions" = "Emotions";
+"analytics.insights" = "Insights";
+"analytics.recommendations" = "Recommendations";
+"analytics.achievements" = "Achievements";
+
+// MARK: - Financial
+"finance.title" = "Finance";
+"finance.total_spent" = "Total spent";
+"finance.this_month" = "This month";
+"finance.last_month" = "Last month";
+"finance.average_monthly" = "Monthly average";
+"finance.by_category" = "By category";
+"finance.top_category" = "Top category";
+"finance.add_expense" = "Add expense";
+"finance.edit_expense" = "Edit expense";
+"finance.delete_expense" = "Delete expense";
+
+// MARK: - Financial Categories
+"finance.category.education" = "Education";
+"finance.category.health" = "Health";
+"finance.category.food" = "Food";
+"finance.category.clothing" = "Clothing";
+"finance.category.transportation" = "Transportation";
+"finance.category.entertainment" = "Entertainment";
+"finance.category.gifts" = "Gifts";
+"finance.category.child_support" = "Child Support";
+"finance.category.other" = "Other";
+
+// MARK: - Emotions
+"emotions.title" = "Emotions";
+"emotions.log_mood" = "Log mood";
+"emotions.average_mood" = "Average mood";
+"emotions.mood_trend" = "Mood trend";
+"emotions.energy_level" = "Energy level";
+"emotions.stress_level" = "Stress level";
+"emotions.sleep_quality" = "Sleep quality";
+"emotions.mood_stability" = "Mood stability";
+
+// MARK: - Mood Levels
+"mood.very_low" = "Very Sad";
+"mood.low" = "Sad";
+"mood.neutral" = "Neutral";
+"mood.good" = "Happy";
+"mood.excellent" = "Very Happy";
+
+// MARK: - Journal
+"journal.title" = "Journal";
+"journal.new_entry" = "New entry";
+"journal.edit_entry" = "Edit entry";
+"journal.delete_entry" = "Delete entry";
+"journal.search_placeholder" = "Search journal...";
+"journal.empty_title" = "No journal entries";
+"journal.empty_message" = "Start by writing your first entry to document special moments";
+"journal.add_photo" = "Add photo";
+"journal.add_audio" = "Add audio";
+"journal.record_audio" = "Record audio";
+
+// MARK: - Community
+"community.title" = "Community";
+"community.posts" = "Posts";
+"community.new_post" = "New post";
+"community.comments" = "Comments";
+"community.likes" = "Likes";
+"community.share" = "Share";
+"community.report" = "Report";
+"community.anonymous" = "Anonymous";
+
+// MARK: - SOS
+"sos.title" = "SOS";
+"sos.emergency" = "Emergency";
+"sos.call_911" = "Call 911";
+"sos.crisis_line" = "Crisis Line";
+"sos.mental_health" = "Mental Health (988)";
+"sos.emergency_contacts" = "Emergency contacts";
+"sos.add_contact" = "Add contact";
+"sos.edit_contact" = "Edit contact";
+"sos.delete_contact" = "Delete contact";
+
+// MARK: - Onboarding
+"onboarding.welcome.title" = "Welcome to JustDad!";
+"onboarding.welcome.subtitle" = "Your digital companion to be the best dad";
+"onboarding.privacy.title" = "Your privacy matters";
+"onboarding.privacy.subtitle" = "All your data stays safe and private on your device";
+"onboarding.goals.title" = "What's important to you?";
+"onboarding.goals.subtitle" = "Help us personalize your experience";
+"onboarding.permissions.title" = "Required permissions";
+"onboarding.permissions.subtitle" = "We need some permissions to provide you with the best experience";
+"onboarding.complete.title" = "All set!";
+"onboarding.complete.subtitle" = "You can now start using JustDad";
+
+// MARK: - Accessibility
+"accessibility.button" = "Button";
+"accessibility.image" = "Image";
+"accessibility.text_field" = "Text field";
+"accessibility.toggle" = "Toggle";
+"accessibility.tab" = "Tab";
+"accessibility.card" = "Card";
+"accessibility.list_item" = "List item";

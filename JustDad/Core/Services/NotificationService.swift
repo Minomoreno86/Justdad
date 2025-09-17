@@ -1,309 +1,339 @@
 //
 //  NotificationService.swift
-//  JustDad
+//  JustDad - Notification management service
 //
-//  Professional notification management service for visit reminders
+//  Handles local notifications for visits, reminders, and app features
 //
 
 import Foundation
 import UserNotifications
-
-// Import local agenda types - will be resolved when types are properly integrated
-// For now we'll use protocol-based approach to handle visit data
-
-// MARK: - Visit Protocol for Notification Service
-protocol NotificationVisitProtocol {
-    var id: UUID { get }
-    var title: String { get }
-    var startDate: Date { get }
-    var endDate: Date { get }
-    var location: String? { get }
-    var reminderMinutes: Int? { get }
-    var isRecurring: Bool { get }
-}
+import Combine
 
 @MainActor
-class NotificationService: ObservableObject {
-    
+class NotificationService: NSObject, ObservableObject {
     static let shared = NotificationService()
     
     @Published var authorizationStatus: UNAuthorizationStatus = .notDetermined
-    @Published var isEnabled: Bool = false
+    @Published var isEnabled: Bool = true
     
-    private let center = UNUserNotificationCenter.current()
+    private let notificationCenter = UNUserNotificationCenter.current()
+    private var cancellables = Set<AnyCancellable>()
     
-    private init() {
+    override init() {
+        super.init()
+        notificationCenter.delegate = self
         checkAuthorizationStatus()
-        setupNotificationCategories()
     }
     
     // MARK: - Authorization
-    
-    func requestAuthorization() async -> Bool {
+    func requestNotificationPermission() async -> Bool {
         do {
-            let granted = try await center.requestAuthorization(options: [.alert, .badge, .sound])
+            let granted = try await notificationCenter.requestAuthorization(options: [.alert, .badge, .sound])
             checkAuthorizationStatus()
             return granted
         } catch {
-            print("Error requesting notification authorization: \(error)")
+            print("Failed to request notification permission: \(error)")
             return false
         }
     }
     
-    func checkAuthorizationStatus() {
-        Task {
-            let settings = await center.notificationSettings()
-            await MainActor.run {
-                self.authorizationStatus = settings.authorizationStatus
-                self.isEnabled = settings.authorizationStatus == .authorized
+    private func checkAuthorizationStatus() {
+        notificationCenter.getNotificationSettings { [weak self] settings in
+            DispatchQueue.main.async {
+                self?.authorizationStatus = settings.authorizationStatus
+                self?.isEnabled = settings.authorizationStatus == .authorized
             }
         }
     }
     
-    // MARK: - Visit Reminders (Generic Implementation)
-    
-    func scheduleVisitReminder(
-        visitId: UUID,
-        title: String,
-        startDate: Date,
-        location: String?,
-        reminderMinutes: Int
-    ) async {
-        guard isEnabled else {
-            print("Notifications not authorized")
-            return
-        }
+    // MARK: - Visit Notifications
+    func scheduleVisitReminder(for visit: Any) {
+        guard isEnabled else { return }
         
-        // Clear any existing notifications for this visit
-        await cancelVisitReminder(for: visitId)
-        
-        // Schedule primary reminder
-        await scheduleNotification(
-            visitId: visitId,
-            title: title,
-            startDate: startDate,
-            location: location,
-            minutesBefore: reminderMinutes,
-            identifier: "\(visitId.uuidString)_reminder"
-        )
-        
-        // Schedule a second reminder 15 minutes before if the main reminder is more than 30 minutes
-        if reminderMinutes > 30 {
-            await scheduleNotification(
-                visitId: visitId,
-                title: title,
-                startDate: startDate,
-                location: location,
-                minutesBefore: 15,
-                identifier: "\(visitId.uuidString)_final_reminder"
-            )
-        }
-    }
-    
-    private func scheduleNotification(
-        visitId: UUID,
-        title: String,
-        startDate: Date,
-        location: String?,
-        minutesBefore: Int,
-        identifier: String
-    ) async {
         let content = UNMutableNotificationContent()
         content.title = "Recordatorio de Visita"
-        content.body = "\(title) en \(minutesBefore) minutos"
+        content.body = "Tienes una cita programada"
         content.sound = .default
         content.badge = 1
-        
-        // Add action buttons
         content.categoryIdentifier = "VISIT_REMINDER"
         
-        // Add location if available
-        if let location = location {
-            content.subtitle = "📍 \(location)"
-        }
-        
-        // Add user info for deep linking
+        // Add visit info to userInfo
         content.userInfo = [
-            "visitId": visitId.uuidString,
-            "type": "visit_reminder"
+            "visitId": "unknown",
+            "visitTitle": "Visita",
+            "visitType": "general"
         ]
         
-        // Calculate trigger date
-        let triggerDate = startDate.addingTimeInterval(-TimeInterval(minutesBefore * 60))
-        
-        // Only schedule if the trigger date is in the future
-        guard triggerDate > Date() else { return }
-        
-        let triggerComponents = Calendar.current.dateComponents(
-            [.year, .month, .day, .hour, .minute],
-            from: triggerDate
-        )
-        
-        let trigger = UNCalendarNotificationTrigger(
-            dateMatching: triggerComponents,
-            repeats: false
-        )
+        // Schedule notification 15 minutes before visit
+        let reminderDate = Date().addingTimeInterval(-15 * 60)
+        let triggerDate = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: reminderDate)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
         
         let request = UNNotificationRequest(
-            identifier: identifier,
+            identifier: "visit_\(UUID().uuidString)",
             content: content,
             trigger: trigger
         )
         
-        do {
-            try await center.add(request)
-            print("Scheduled notification: \(identifier) for \(triggerDate)")
-        } catch {
-            print("Error scheduling notification: \(error)")
-        }
-    }
-    
-    func scheduleRecurringReminder(
-        visitId: UUID,
-        title: String,
-        startDate: Date,
-        location: String?,
-        reminderMinutes: Int,
-        frequency: RecurrenceFrequency,
-        interval: Int = 1
-    ) async {
-        guard isEnabled else { return }
-        
-        // Schedule up to 10 future occurrences
-        let calendar = Calendar.current
-        
-        for i in 1...10 {
-            let nextDate: Date?
-            
-            switch frequency {
-            case .daily:
-                nextDate = calendar.date(byAdding: .day, value: interval * i, to: startDate)
-            case .weekly:
-                nextDate = calendar.date(byAdding: .weekOfYear, value: interval * i, to: startDate)
-            case .monthly:
-                nextDate = calendar.date(byAdding: .month, value: interval * i, to: startDate)
+        notificationCenter.add(request) { error in
+            if let error = error {
+                print("Failed to schedule visit reminder: \(error)")
             }
-            
-            guard let date = nextDate, date > Date() else { continue }
-            
-            await scheduleNotification(
-                visitId: UUID(), // New UUID for recurring instance
-                title: title,
-                startDate: date,
-                location: location,
-                minutesBefore: reminderMinutes,
-                identifier: "\(visitId.uuidString)_recurring_\(i)"
-            )
         }
     }
     
-    func cancelVisitReminder(for visitId: UUID) async {
-        var identifiers = [
-            "\(visitId.uuidString)_reminder",
-            "\(visitId.uuidString)_final_reminder"
-        ]
-        
-        // Also cancel recurring reminders
-        for i in 1...10 {
-            identifiers.append("\(visitId.uuidString)_recurring_\(i)")
-        }
-        
-        center.removePendingNotificationRequests(withIdentifiers: identifiers)
-        print("Cancelled notifications for visit: \(visitId)")
+    func cancelVisitReminder(for visitId: UUID) {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["visit_\(visitId.uuidString)"])
     }
     
-    // MARK: - Daily Summary
-    
-    func scheduleDailySummary() async {
+    // MARK: - Daily Reminders
+    func scheduleDailyReminder(at time: Date) {
         guard isEnabled else { return }
         
         let content = UNMutableNotificationContent()
-        content.title = "Resumen Diario - JustDad"
-        content.body = "Revisa las visitas programadas para hoy"
+        content.title = "¡Hola! 👋"
+        content.body = "¿Cómo te sientes hoy? Registra tu estado de ánimo en JustDad"
         content.sound = .default
-        content.categoryIdentifier = "DAILY_SUMMARY"
+        content.categoryIdentifier = "DAILY_REMINDER"
         
-        // Schedule for 8:00 AM daily
-        var dateComponents = DateComponents()
-        dateComponents.hour = 8
-        dateComponents.minute = 0
-        
-        let trigger = UNCalendarNotificationTrigger(
-            dateMatching: dateComponents,
-            repeats: true
-        )
+        let triggerDate = Calendar.current.dateComponents([.hour, .minute], from: time)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: true)
         
         let request = UNNotificationRequest(
-            identifier: "daily_summary",
+            identifier: "daily_reminder",
             content: content,
             trigger: trigger
         )
         
-        do {
-            try await center.add(request)
-            print("Scheduled daily summary notification")
-        } catch {
-            print("Error scheduling daily summary: \(error)")
+        notificationCenter.add(request) { error in
+            if let error = error {
+                print("Failed to schedule daily reminder: \(error)")
+            }
         }
     }
     
-    // MARK: - Utility
-    
-    func getPendingNotifications() async -> [UNNotificationRequest] {
-        return await center.pendingNotificationRequests()
+    func cancelDailyReminder() {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["daily_reminder"])
     }
     
-    func removeAllNotifications() {
-        center.removeAllPendingNotificationRequests()
-        center.removeAllDeliveredNotifications()
+    // MARK: - Weekly Summary
+    func scheduleWeeklySummary() {
+        guard isEnabled else { return }
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Resumen Semanal 📊"
+        content.body = "Revisa tu semana en JustDad y planifica la próxima"
+        content.sound = .default
+        content.categoryIdentifier = "WEEKLY_SUMMARY"
+        
+        // Schedule for Sunday at 8 PM
+        var dateComponents = DateComponents()
+        dateComponents.weekday = 1 // Sunday
+        dateComponents.hour = 20
+        dateComponents.minute = 0
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        
+        let request = UNNotificationRequest(
+            identifier: "weekly_summary",
+            content: content,
+            trigger: trigger
+        )
+        
+        notificationCenter.add(request) { error in
+            if let error = error {
+                print("Failed to schedule weekly summary: \(error)")
+            }
+        }
     }
-}
-
-// MARK: - Recurrence Frequency Enum
-enum RecurrenceFrequency {
-    case daily
-    case weekly
-    case monthly
-}
-
-// MARK: - Notification Categories
-extension NotificationService {
     
+    func cancelWeeklySummary() {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["weekly_summary"])
+    }
+    
+    // MARK: - Backup Reminders
+    func scheduleBackupReminder() {
+        guard isEnabled else { return }
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Respaldo de Datos 💾"
+        content.body = "Recuerda hacer un respaldo de tus datos importantes"
+        content.sound = .default
+        content.categoryIdentifier = "BACKUP_REMINDER"
+        
+        // Schedule for the 1st of each month at 9 AM
+        var dateComponents = DateComponents()
+        dateComponents.day = 1
+        dateComponents.hour = 9
+        dateComponents.minute = 0
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        
+        let request = UNNotificationRequest(
+            identifier: "backup_reminder",
+            content: content,
+            trigger: trigger
+        )
+        
+        notificationCenter.add(request) { error in
+            if let error = error {
+                print("Failed to schedule backup reminder: \(error)")
+            }
+        }
+    }
+    
+    func cancelBackupReminder() {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["backup_reminder"])
+    }
+    
+    // MARK: - Emergency Notifications
+    func scheduleEmergencyCheckIn() {
+        guard isEnabled else { return }
+        
+        let content = UNMutableNotificationContent()
+        content.title = "¿Todo bien? 🤔"
+        content.body = "Hace tiempo que no usas la app. ¿Necesitas ayuda?"
+        content.sound = .default
+        content.categoryIdentifier = "EMERGENCY_CHECKIN"
+        
+        // Schedule for 3 days of inactivity
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3 * 24 * 60 * 60, repeats: false)
+        
+        let request = UNNotificationRequest(
+            identifier: "emergency_checkin",
+            content: content,
+            trigger: trigger
+        )
+        
+        notificationCenter.add(request) { error in
+            if let error = error {
+                print("Failed to schedule emergency check-in: \(error)")
+            }
+        }
+    }
+    
+    func cancelEmergencyCheckIn() {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["emergency_checkin"])
+    }
+    
+    // MARK: - Notification Categories
     func setupNotificationCategories() {
         let visitReminderCategory = UNNotificationCategory(
             identifier: "VISIT_REMINDER",
             actions: [
-                UNNotificationAction(
-                    identifier: "VIEW_VISIT",
-                    title: "Ver Visita",
-                    options: [.foreground]
-                ),
-                UNNotificationAction(
-                    identifier: "SNOOZE_REMINDER",
-                    title: "Recordar en 10 min",
-                    options: []
-                )
-            ],
-            intentIdentifiers: [],
-            options: [.customDismissAction]
-        )
-        
-        let dailySummaryCategory = UNNotificationCategory(
-            identifier: "DAILY_SUMMARY",
-            actions: [
-                UNNotificationAction(
-                    identifier: "OPEN_AGENDA",
-                    title: "Abrir Agenda",
-                    options: [.foreground]
-                )
+                UNNotificationAction(identifier: "VIEW_VISIT", title: "Ver Cita", options: [.foreground]),
+                UNNotificationAction(identifier: "SNOOZE", title: "Posponer 10 min", options: [])
             ],
             intentIdentifiers: [],
             options: []
         )
         
-        center.setNotificationCategories([
+        let dailyReminderCategory = UNNotificationCategory(
+            identifier: "DAILY_REMINDER",
+            actions: [
+                UNNotificationAction(identifier: "LOG_MOOD", title: "Registrar Estado", options: [.foreground]),
+                UNNotificationAction(identifier: "DISMISS", title: "Descartar", options: [])
+            ],
+            intentIdentifiers: [],
+            options: []
+        )
+        
+        let weeklySummaryCategory = UNNotificationCategory(
+            identifier: "WEEKLY_SUMMARY",
+            actions: [
+                UNNotificationAction(identifier: "VIEW_ANALYTICS", title: "Ver Resumen", options: [.foreground]),
+                UNNotificationAction(identifier: "DISMISS", title: "Descartar", options: [])
+            ],
+            intentIdentifiers: [],
+            options: []
+        )
+        
+        let backupReminderCategory = UNNotificationCategory(
+            identifier: "BACKUP_REMINDER",
+            actions: [
+                UNNotificationAction(identifier: "BACKUP_NOW", title: "Respaldar Ahora", options: [.foreground]),
+                UNNotificationAction(identifier: "REMIND_LATER", title: "Recordar Más Tarde", options: [])
+            ],
+            intentIdentifiers: [],
+            options: []
+        )
+        
+        let emergencyCheckInCategory = UNNotificationCategory(
+            identifier: "EMERGENCY_CHECKIN",
+            actions: [
+                UNNotificationAction(identifier: "I_AM_OK", title: "Estoy Bien", options: []),
+                UNNotificationAction(identifier: "NEED_HELP", title: "Necesito Ayuda", options: [.foreground])
+            ],
+            intentIdentifiers: [],
+            options: []
+        )
+        
+        notificationCenter.setNotificationCategories([
             visitReminderCategory,
-            dailySummaryCategory
+            dailyReminderCategory,
+            weeklySummaryCategory,
+            backupReminderCategory,
+            emergencyCheckInCategory
         ])
+    }
+    
+    // MARK: - Cleanup
+    func cancelAllNotifications() {
+        notificationCenter.removeAllPendingNotificationRequests()
+        notificationCenter.removeAllDeliveredNotifications()
+    }
+    
+    func cancelNotification(withIdentifier identifier: String) {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
+    }
+    
+    // MARK: - Debug
+    func getPendingNotifications() async -> [UNNotificationRequest] {
+        return await notificationCenter.pendingNotificationRequests()
+    }
+    
+    func getDeliveredNotifications() async -> [UNNotification] {
+        return await notificationCenter.deliveredNotifications()
+    }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+extension NotificationService: UNUserNotificationCenterDelegate {
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        let userInfo = response.notification.request.content.userInfo
+        
+        switch response.actionIdentifier {
+        case "VIEW_VISIT":
+            // Handle view visit action
+            if let visitId = userInfo["visitId"] as? String {
+                // Navigate to visit detail
+                print("Navigate to visit: \(visitId)")
+            }
+        case "LOG_MOOD":
+            // Handle log mood action
+            print("Navigate to emotions view")
+        case "VIEW_ANALYTICS":
+            // Handle view analytics action
+            print("Navigate to analytics view")
+        case "BACKUP_NOW":
+            // Handle backup now action
+            print("Start backup process")
+        case "NEED_HELP":
+            // Handle need help action
+            print("Navigate to SOS view")
+        default:
+            break
+        }
+        
+        completionHandler()
+    }
+    
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        // Show notification even when app is in foreground
+        if #available(iOS 14.0, *) {
+            completionHandler([.banner, .badge, .sound])
+        } else {
+            completionHandler([.alert, .badge, .sound])
+        }
     }
 }

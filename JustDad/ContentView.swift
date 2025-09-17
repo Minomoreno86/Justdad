@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  SoloPapá - Main app content view with navigation
+//  JustDad - Main app content view with navigation
 //
 //  Handles main navigation, onboarding flow, and SOS modal
 //
@@ -9,181 +9,90 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @State private var showOnboarding = true
-    @State private var selectedTab = 0
-    @State private var showSOS = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var selectedTab: Tab = .home
+    @State private var showingSOSSheet = false
+    
+    enum Tab: String, CaseIterable {
+        case home = "home"
+        case agenda = "agenda" 
+        case finance = "finance"
+        case emotions = "emotions"
+        case community = "community"
+        case analytics = "analytics"
+        
+        var title: String {
+            switch self {
+            case .home: return NSLocalizedString("tab_home", comment: "")
+            case .agenda: return NSLocalizedString("tab_agenda", comment: "")
+            case .finance: return NSLocalizedString("tab_finance", comment: "")
+            case .emotions: return NSLocalizedString("tab_emotions", comment: "")
+            case .community: return NSLocalizedString("tab_community", comment: "")
+            case .analytics: return NSLocalizedString("tab_analytics", comment: "")
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .home: return "house.fill"
+            case .agenda: return "calendar"
+            case .finance: return "creditcard.fill"
+            case .emotions: return "heart.fill"
+            case .community: return "person.3.fill"
+            case .analytics: return "chart.bar.fill"
+            }
+        }
+    }
     
     var body: some View {
         ZStack {
-            if showOnboarding {
-                PlaceholderOnboardingView()
-            } else {
+            if hasCompletedOnboarding {
                 TabView(selection: $selectedTab) {
-                    PlaceholderHomeView()
+                    HomeView()
                         .tabItem {
-                            Image(systemName: "house")
-                            Text("Inicio")
+                            Image(systemName: Tab.home.icon)
+                            Text(Tab.home.title)
                         }
-                        .tag(0)
+                        .tag(Tab.home)
                     
-                    PlaceholderAgendaView()
+                    AgendaView(repo: InMemoryAgendaRepository())
                         .tabItem {
-                            Image(systemName: "calendar")
-                            Text("Agenda")
+                            Image(systemName: Tab.agenda.icon)
+                            Text(Tab.agenda.title)
                         }
-                        .tag(1)
+                        .tag(Tab.agenda)
                     
-                    PlaceholderFinanceView()
+                    FinanceView()
                         .tabItem {
-                            Image(systemName: "dollarsign.circle")
-                            Text("Finanzas")
+                            Image(systemName: Tab.finance.icon)
+                            Text(Tab.finance.title)
                         }
-                        .tag(2)
+                        .tag(Tab.finance)
                     
-                    PlaceholderEmotionsView()
+                    EmotionsView()
                         .tabItem {
-                            Image(systemName: "heart")
-                            Text("Emociones")
+                            Image(systemName: Tab.emotions.icon)
+                            Text(Tab.emotions.title)
                         }
-                        .tag(3)
+                        .tag(Tab.emotions)
                     
-                    PlaceholderCommunityView()
+                    CommunityView()
                         .tabItem {
-                            Image(systemName: "person.3")
-                            Text("Comunidad")
+                            Image(systemName: Tab.community.icon)
+                            Text(Tab.community.title)
                         }
-                        .tag(4)
+                        .tag(Tab.community)
                     
                     AnalyticsView()
                         .tabItem {
-                            Image(systemName: "chart.bar.fill")
-                            Text("Analytics")
+                            Image(systemName: Tab.analytics.icon)
+                            Text(Tab.analytics.title)
                         }
-                        .tag(5)
+                        .tag(Tab.analytics)
                 }
-            }
-        }
-        .sheet(isPresented: $showSOS) {
-            PlaceholderSOSView()
-        }
-    }
-}
-
-// Placeholder views
-struct PlaceholderHomeView: View {
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Home")
-                    .font(.largeTitle)
-                Text("Vista principal en desarrollo")
-                    .foregroundColor(.secondary)
-            }
-            .navigationTitle("Inicio")
-        }
-    }
-}
-
-struct PlaceholderAgendaView: View {
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Agenda")
-                    .font(.largeTitle)
-                Text("Vista de agenda en desarrollo")
-                    .foregroundColor(.secondary)
-            }
-            .navigationTitle("Agenda")
-        }
-    }
-}
-
-struct PlaceholderFinanceView: View {
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Finanzas")
-                    .font(.largeTitle)
-                Text("Vista de finanzas en desarrollo")
-                    .foregroundColor(.secondary)
-            }
-            .navigationTitle("Finanzas")
-        }
-    }
-}
-
-struct PlaceholderEmotionsView: View {
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Emociones")
-                    .font(.largeTitle)
-                Text("Vista de emociones en desarrollo")
-                    .foregroundColor(.secondary)
-            }
-            .navigationTitle("Emociones")
-        }
-    }
-}
-
-struct PlaceholderCommunityView: View {
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Comunidad")
-                    .font(.largeTitle)
-                Text("Vista de comunidad en desarrollo")
-                    .foregroundColor(.secondary)
-            }
-            .navigationTitle("Comunidad")
-        }
-    }
-}
-
-struct PlaceholderOnboardingView: View {
-    @State private var showOnboarding = true
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            Text("¡Bienvenido a SoloPapá!")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Text("Tu app de apoyo para padres divorciados")
-                .font(.title2)
-                .foregroundColor(.secondary)
-            
-            Button("Comenzar") {
-                showOnboarding = false
-            }
-            .font(.title2)
-            .padding()
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(12)
-        }
-        .padding()
-    }
-}
-
-struct PlaceholderSOSView: View {
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("SOS")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                Text("Vista de emergencias en desarrollo")
-                    .foregroundColor(.secondary)
-            }
-            .navigationTitle("SOS")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cerrar") {
-                        dismiss()
-                    }
+            } else {
+                OnboardingView {
+                    hasCompletedOnboarding = true
                 }
             }
         }
