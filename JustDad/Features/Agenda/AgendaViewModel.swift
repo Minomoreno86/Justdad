@@ -21,6 +21,7 @@ final class AgendaViewModel: ObservableObject {
     @Published private(set) var lastSyncDate: Date? = nil
 
     private let repo: AgendaRepositoryProtocol
+    private let notificationService = NotificationService.shared
     private var cancellables = Set<AnyCancellable>()
     private let cal = Calendar.current
     private let maxRetryAttempts = 3
@@ -62,6 +63,9 @@ final class AgendaViewModel: ObservableObject {
             
             self.visitsByDay = groupedVisits
             self.allVisits = visitsByDay.values.flatMap { $0 } // Update allVisits
+            
+            // Schedule notifications for all visits
+            await notificationService.rescheduleAllVisitReminders(for: allVisits)
         }
     }
     
@@ -102,6 +106,9 @@ final class AgendaViewModel: ObservableObject {
             
             // Update all visits
             allVisits = visitsByDay.values.flatMap { $0 }
+            
+            // Schedule notification for the new visit
+            await notificationService.scheduleVisitReminder(for: savedVisit)
         }
     }
     
@@ -127,6 +134,10 @@ final class AgendaViewModel: ObservableObject {
             
             // Update all visits
             allVisits = visitsByDay.values.flatMap { $0 }
+            
+            // Reschedule notification for the updated visit
+            await notificationService.cancelVisitReminder(for: visit.id)
+            await notificationService.scheduleVisitReminder(for: updatedVisit)
         }
     }
     
@@ -145,6 +156,9 @@ final class AgendaViewModel: ObservableObject {
             
             // Update all visits
             allVisits = visitsByDay.values.flatMap { $0 }
+            
+            // Cancel notification for the deleted visit
+            await notificationService.cancelVisitReminder(for: visit.id)
         }
     }
     

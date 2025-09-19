@@ -21,6 +21,8 @@ struct AgendaHeaderView: View {
     let onEditModeToggle: () -> Void
     let onViewModeChange: (CalendarViewMode) -> Void
     let onFilterChange: (VisitFilter) -> Void
+    let onSyncTap: (() -> Void)?
+    let onNotificationSettingsTap: (() -> Void)?
     
     // MARK: - Body
     var body: some View {
@@ -99,6 +101,30 @@ struct AgendaHeaderView: View {
                 size: .small
             ) {
                 showingViewModeSheet.wrappedValue = true
+            }
+            
+            // Sync button
+            if let onSyncTap = onSyncTap {
+                Button(action: onSyncTap) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(SuperDesign.Tokens.colors.primary)
+                        .frame(width: 32, height: 32)
+                        .background(SuperDesign.Tokens.colors.primary.opacity(0.1))
+                        .cornerRadius(8)
+                }
+            }
+            
+            // Notification settings button
+            if let onNotificationSettingsTap = onNotificationSettingsTap {
+                Button(action: onNotificationSettingsTap) {
+                    Image(systemName: "bell")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(SuperDesign.Tokens.colors.primary)
+                        .frame(width: 32, height: 32)
+                        .background(SuperDesign.Tokens.colors.primary.opacity(0.1))
+                        .cornerRadius(8)
+                }
             }
         }
         .padding(.horizontal, SuperDesign.Tokens.space.lg)

@@ -22,8 +22,20 @@ class PersistenceService: ObservableObject {
     
     private init() {
         do {
-            // Create a simple model container with basic schema
-            let schema = Schema([])
+            // Create a model container with all required models
+            let schema = Schema([
+                Visit.self,
+                VisitAttachment.self,
+                EmergencyContact.self,
+                AppSettings.self,
+                FinancialEntry.self,
+                ReceiptAttachment.self,
+                EmotionalEntry.self,
+                DiaryEntry.self,
+                DiaryAttachment.self,
+                CommunityPost.self,
+                UserPreferences.self
+            ])
             
             let modelConfiguration = ModelConfiguration(
                 schema: schema,
@@ -54,6 +66,11 @@ class PersistenceService: ObservableObject {
     // MARK: - Generic Data Operations
     func save<T: PersistentModel>(_ item: T) async throws {
         modelContext.insert(item)
+        try modelContext.save()
+    }
+    
+    func saveFinancialEntry(_ entry: FinancialEntry) async throws {
+        modelContext.insert(entry)
         try modelContext.save()
     }
     

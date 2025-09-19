@@ -6,7 +6,46 @@
 //
 
 import SwiftUI
-import UIKit
+
+// MARK: - Visit Type Filter
+enum VisitTypeFilter: CaseIterable, Hashable {
+    case all
+    case upcoming
+    case past
+    case type(AgendaVisitType)
+    
+    static var allCases: [VisitTypeFilter] {
+        var cases: [VisitTypeFilter] = [.all, .upcoming, .past]
+        cases.append(contentsOf: AgendaVisitType.allCases.map { .type($0) })
+        return cases
+    }
+    
+    var displayName: String {
+        switch self {
+        case .all:
+            return NSLocalizedString("filter.all", comment: "All")
+        case .upcoming:
+            return NSLocalizedString("filter.upcoming", comment: "Upcoming")
+        case .past:
+            return NSLocalizedString("filter.past", comment: "Past")
+        case .type(let visitType):
+            return visitType.displayName
+        }
+    }
+    
+    var systemIcon: String {
+        switch self {
+        case .all:
+            return "list.bullet"
+        case .upcoming:
+            return "clock"
+        case .past:
+            return "clock.arrow.circlepath"
+        case .type(let visitType):
+            return visitType.systemIcon
+        }
+    }
+}
 
 struct VisitListView: View {
     let visits: [AgendaVisit]
@@ -108,12 +147,18 @@ struct VisitListView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(filteredVisits) { visit in
-                    VisitRowView(
+                    VisitRowViewLocal(
                         visit: visit,
                         isEditMode: false,
                         isSelected: false,
                         onTap: { onVisitTap(visit) },
-                        onLongPress: { /* No implementation needed for basic list */ }
+                        onLongPress: { /* No implementation needed for basic list */ },
+                        onEdit: { onVisitTap(visit) },
+                        onDelete: { /* No implementation needed for basic list */ },
+                        onDuplicate: { /* No implementation needed for basic list */ },
+                        onShare: { /* No implementation needed for basic list */ },
+                        onToggleFavorite: { /* No implementation needed for basic list */ },
+                        onArchive: { /* No implementation needed for basic list */ }
                     )
                     .contextMenu {
                         Button("Edit", systemImage: "pencil") {
@@ -192,60 +237,6 @@ struct FilterPill: View {
     }
 }
 
-// MARK: - Visit Type Filter
-
-enum VisitTypeFilter: CaseIterable, Equatable, Hashable {
-    case all
-    case upcoming
-    case past
-    case type(AgendaVisitType)
-    
-    static var allCases: [VisitTypeFilter] {
-        var cases: [VisitTypeFilter] = [.all, .upcoming, .past]
-        cases.append(contentsOf: AgendaVisitType.allCases.map { .type($0) })
-        return cases
-    }
-    
-    var displayName: String {
-        switch self {
-        case .all:
-            return NSLocalizedString("filter.all", comment: "All")
-        case .upcoming:
-            return NSLocalizedString("filter.upcoming", comment: "Upcoming")
-        case .past:
-            return NSLocalizedString("filter.past", comment: "Past")
-        case .type(let visitType):
-            return visitType.displayName
-        }
-    }
-    
-    var systemIcon: String {
-        switch self {
-        case .all:
-            return "calendar"
-        case .upcoming:
-            return "clock"
-        case .past:
-            return "clock.arrow.circlepath"
-        case .type(let visitType):
-            return visitType.systemIcon
-        }
-    }
-    
-    func hash(into hasher: inout Hasher) {
-        switch self {
-        case .all:
-            hasher.combine("all")
-        case .upcoming:
-            hasher.combine("upcoming")
-        case .past:
-            hasher.combine("past")
-        case .type(let visitType):
-            hasher.combine("type")
-            hasher.combine(visitType)
-        }
-    }
-}
 
 // MARK: - Preview
 
@@ -270,4 +261,79 @@ enum VisitTypeFilter: CaseIterable, Equatable, Hashable {
         onDeleteVisit: { _ in }
     )
     .padding()
+}
+
+// MARK: - VisitRowViewLocal
+struct VisitRowViewLocal: View {
+    let visit: AgendaVisit
+    let isEditMode: Bool
+    let isSelected: Bool
+    let onTap: () -> Void
+    let onLongPress: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+    let onDuplicate: () -> Void
+    let onShare: () -> Void
+    let onToggleFavorite: () -> Void
+    let onArchive: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                // Visit Type Icon
+                Circle()
+                    .fill(colorForVisitType(visit.visitType))
+                    .frame(width: 12, height: 12)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(visit.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    HStack {
+                        Image(systemName: "clock")
+                            .foregroundColor(.secondary)
+                        Text(visit.startDate, style: .time)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        if let location = visit.location {
+                            Image(systemName: "location")
+                                .foregroundColor(.secondary)
+                            Text(location)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding()
+            .background(Color.clear)
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onLongPressGesture {
+            onLongPress()
+        }
+    }
+    
+    private func colorForVisitType(_ visitType: AgendaVisitType) -> Color {
+        switch visitType {
+        case .weekend: return .blue
+        case .dinner: return .green
+        case .activity: return .purple
+        case .school: return .yellow
+        case .medical: return .orange
+        case .emergency: return .red
+        case .general: return .gray
+        }
+    }
 }

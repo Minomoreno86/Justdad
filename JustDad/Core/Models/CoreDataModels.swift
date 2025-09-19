@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import SwiftUI
 
 // Import AgendaVisitType from AgendaTypes module
 // AgendaVisitType should be accessible from the same module
@@ -22,6 +23,7 @@ extension ModelContainer {
             EmergencyContact.self,
             AppSettings.self,
             FinancialEntry.self,
+            ReceiptAttachment.self,
             EmotionalEntry.self,
             DiaryEntry.self,
             DiaryAttachment.self,
@@ -120,12 +122,16 @@ final class FinancialEntry {
     var title: String
     var amount: Decimal
     var category: ExpenseCategory
+    var customCategory: CustomCategory?
+    var expenseType: ExpenseType?
     var date: Date
     var notes: String?
-    var receiptImagePath: String? // Path to encrypted image file
+    var receiptImagePath: String? // Path to encrypted image file (legacy)
     var isRecurring: Bool
     var createdAt: Date
     var updatedAt: Date
+    // Relationship to receipt (new)
+    var receipt: ReceiptAttachment?
     
     enum ExpenseCategory: String, Codable, CaseIterable {
         case education = "education"
@@ -153,16 +159,121 @@ final class FinancialEntry {
         }
     }
     
-    init(title: String, amount: Decimal, category: ExpenseCategory, date: Date = Date(), notes: String? = nil) {
+    enum ExpenseType: String, Codable, CaseIterable {
+        case fixed = "fixed"
+        case variable = "variable"
+        
+        var displayName: String {
+            switch self {
+            case .fixed: return "Gasto Fijo"
+            case .variable: return "Gasto Variable"
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .fixed: return "Se repite todos los meses"
+            case .variable: return "Gasto ocasional o único"
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .fixed: return "repeat.circle.fill"
+            case .variable: return "exclamationmark.circle.fill"
+            }
+        }
+    }
+    
+    init(title: String, amount: Decimal, category: ExpenseCategory, expenseType: ExpenseType? = .variable, date: Date = Date(), notes: String? = nil) {
         self.id = UUID()
         self.title = title
         self.amount = amount
         self.category = category
+        self.expenseType = expenseType
         self.date = date
         self.notes = notes
         self.isRecurring = false
         self.createdAt = Date()
         self.updatedAt = Date()
+    }
+    
+    // MARK: - Computed Properties
+    var effectiveCategoryName: String {
+        return customCategory?.displayName ?? category.displayName
+    }
+    
+    var effectiveCategoryIcon: String {
+        return customCategory?.systemIcon ?? categoryIcon(for: category)
+    }
+    
+    var effectiveCategoryColor: Color {
+        return customCategory?.swiftUIColor ?? categoryColor(for: category)
+    }
+    
+    private func categoryIcon(for category: ExpenseCategory) -> String {
+        switch category {
+        case .education: return "book.fill"
+        case .health: return "cross.fill"
+        case .food: return "fork.knife"
+        case .transportation: return "car.fill"
+        case .entertainment: return "gamecontroller.fill"
+        case .clothing: return "tshirt.fill"
+        case .gifts: return "gift.fill"
+        case .childSupport: return "house.fill"
+        case .other: return "ellipsis.circle.fill"
+        }
+    }
+    
+    private func categoryColor(for category: ExpenseCategory) -> Color {
+        switch category {
+        case .education: return .blue
+        case .health: return .red
+        case .food: return .orange
+        case .transportation: return .green
+        case .entertainment: return .purple
+        case .clothing: return .pink
+        case .gifts: return .yellow
+        case .childSupport: return .brown
+        case .other: return .gray
+        }
+    }
+}
+
+// MARK: - Receipt Attachment Model
+@Model
+final class ReceiptAttachment {
+    var id: UUID
+    var filePath: String // stored file path (image or PDF)
+    var thumbnailPath: String? // generated thumbnail for previews
+    var pagesCount: Int
+    var extractedAmount: Decimal?
+    var extractedDate: Date?
+    var merchant: String?
+    var currencyCode: String?
+    var rawText: String?
+    var createdAt: Date
+    // Relationship back to financial entry
+    var financialEntry: FinancialEntry?
+    
+    init(filePath: String,
+         thumbnailPath: String? = nil,
+         pagesCount: Int = 1,
+         extractedAmount: Decimal? = nil,
+         extractedDate: Date? = nil,
+         merchant: String? = nil,
+         currencyCode: String? = nil,
+         rawText: String? = nil) {
+        self.id = UUID()
+        self.filePath = filePath
+        self.thumbnailPath = thumbnailPath
+        self.pagesCount = pagesCount
+        self.extractedAmount = extractedAmount
+        self.extractedDate = extractedDate
+        self.merchant = merchant
+        self.currencyCode = currencyCode
+        self.rawText = rawText
+        self.createdAt = Date()
     }
 }
 

@@ -19,5 +19,9 @@
 	<!-- Notification Permission -->
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>JustDad envía notificaciones para recordarte las próximas visitas con tus hijos y eventos importantes.</string>
+
+	<!-- Camera Permission for Receipt Scanning -->
+	<key>NSCameraUsageDescription</key>
+	<string>JustDad necesita acceso a la cámara para escanear facturas y adjuntarlas a tus gastos.</string>
 </dict>
 </plist>

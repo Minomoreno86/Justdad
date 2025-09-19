@@ -10,6 +10,7 @@ enum Route: Hashable, CaseIterable {
     case finance
     case financeDetail(expenseId: String)
     case financeAdd
+    case financeAllTransactions
     case journal
     case journalDetail(entryId: String)
     case journalNew
@@ -56,6 +57,8 @@ extension Route {
             return NSLocalizedString("finance.detail.title", comment: "")
         case .financeAdd:
             return NSLocalizedString("finance.add.title", comment: "")
+        case .financeAllTransactions:
+            return NSLocalizedString("finance.all_transactions.title", comment: "")
         case .journal:
             return NSLocalizedString("journal.title", comment: "")
         case .journalDetail:

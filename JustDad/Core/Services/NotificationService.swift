@@ -47,30 +47,37 @@ class NotificationService: NSObject, ObservableObject {
     }
     
     // MARK: - Visit Notifications
-    func scheduleVisitReminder(for visit: Any) {
+    func scheduleVisitReminder(for visit: AgendaVisit) {
         guard isEnabled else { return }
+        
+        // Calculate reminder time based on visit's reminderMinutes setting
+        let reminderMinutes = visit.reminderMinutes ?? 15 // Default to 15 minutes
+        let reminderDate = visit.startDate.addingTimeInterval(-TimeInterval(reminderMinutes * 60))
+        
+        // Don't schedule if reminder time is in the past
+        guard reminderDate > Date() else { return }
         
         let content = UNMutableNotificationContent()
         content.title = "Recordatorio de Visita"
-        content.body = "Tienes una cita programada"
+        content.body = "\(visit.title) - \(visit.startDate.formatted(date: .omitted, time: .shortened))"
         content.sound = .default
         content.badge = 1
         content.categoryIdentifier = "VISIT_REMINDER"
         
         // Add visit info to userInfo
         content.userInfo = [
-            "visitId": "unknown",
-            "visitTitle": "Visita",
-            "visitType": "general"
+            "visitId": visit.id.uuidString,
+            "visitTitle": visit.title,
+            "visitType": visit.visitType.rawValue,
+            "visitStartDate": visit.startDate.timeIntervalSince1970
         ]
         
-        // Schedule notification 15 minutes before visit
-        let reminderDate = Date().addingTimeInterval(-15 * 60)
+        // Schedule notification at calculated reminder time
         let triggerDate = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: reminderDate)
         let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
         
         let request = UNNotificationRequest(
-            identifier: "visit_\(UUID().uuidString)",
+            identifier: "visit_\(visit.id.uuidString)",
             content: content,
             trigger: trigger
         )
@@ -78,12 +85,38 @@ class NotificationService: NSObject, ObservableObject {
         notificationCenter.add(request) { error in
             if let error = error {
                 print("Failed to schedule visit reminder: \(error)")
+            } else {
+                print("✅ Scheduled reminder for visit: \(visit.title) at \(reminderDate.formatted())")
             }
         }
     }
     
     func cancelVisitReminder(for visitId: UUID) {
         notificationCenter.removePendingNotificationRequests(withIdentifiers: ["visit_\(visitId.uuidString)"])
+    }
+    
+    func scheduleRemindersForVisits(_ visits: [AgendaVisit]) {
+        for visit in visits {
+            scheduleVisitReminder(for: visit)
+        }
+    }
+    
+    func cancelAllVisitReminders() {
+        notificationCenter.getPendingNotificationRequests { requests in
+            let visitIdentifiers = requests
+                .filter { $0.identifier.hasPrefix("visit_") }
+                .map { $0.identifier }
+            
+            self.notificationCenter.removePendingNotificationRequests(withIdentifiers: visitIdentifiers)
+        }
+    }
+    
+    func rescheduleAllVisitReminders(for visits: [AgendaVisit]) {
+        // Cancel all existing visit reminders
+        cancelAllVisitReminders()
+        
+        // Schedule new reminders
+        scheduleRemindersForVisits(visits)
     }
     
     // MARK: - Daily Reminders

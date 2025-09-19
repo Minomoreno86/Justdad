@@ -13,6 +13,17 @@ struct AgendaView: View {
     @State private var showingCalendarSelection = false
     @State private var hasRequestedPermission = false
     
+    // MARK: - Advanced Search
+    @State private var advancedSearchFilter = AdvancedSearchFilter()
+    
+    // MARK: - Sync Status
+    @StateObject private var syncStatusManager = SyncStatusManager.shared
+    
+    // MARK: - Notifications
+    @StateObject private var notificationService = NotificationService.shared
+    @State private var showingNotificationSettings = false
+    @State private var defaultReminderMinutes: Int? = 15
+    
     // MARK: - Initialization
     init(repo: AgendaRepositoryProtocol) {
         _vm = StateObject(wrappedValue: AgendaViewModel(repo: repo))
@@ -20,47 +31,7 @@ struct AgendaView: View {
 
     var body: some View {
         NavigationView {
-            ZStack {
-                // Professional gradient background
-                SuperDesign.Tokens.colors.surfaceGradient
-                    .ignoresSafeArea()
-                
-                VStack(spacing: 0) {
-                    // Professional Header with View Mode Selector
-                    AgendaHeaderView(
-                        viewMode: viewState.viewMode,
-                        isEditMode: viewState.isEditMode,
-                        selectedVisitsCount: viewState.selectedVisits.count,
-                        headerSubtitle: viewState.headerSubtitle,
-                        searchText: $viewState.searchText,
-                        selectedFilter: viewState.selectedFilter,
-                        showingViewModeSheet: $viewState.showingViewModeSheet,
-                        showingFilterSheet: $viewState.showingFilterSheet,
-                        onEditModeToggle: viewState.toggleEditMode,
-                        onViewModeChange: { viewState.viewMode = $0 },
-                        onFilterChange: { viewState.selectedFilter = $0 }
-                    )
-                    
-                    // Main Calendar Content with proper scroll behavior
-                    mainContentView
-                        .clipped() // Prevent content overflow
-                }
-                
-                // Floating Action Button - properly positioned
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        AgendaFloatingActionButton {
-                            viewState.showNewVisit()
-                        }
-                        .padding(.trailing, SuperDesign.Tokens.space.lg)
-                        .padding(.bottom, SuperDesign.Tokens.space.xl)
-                    }
-                }
-                .allowsHitTesting(true) // Ensure button remains tappable
-            }
-            .navigationBarHidden(true)
+            mainViewContent
         }
         .onAppear {
             checkCalendarPermissions()
@@ -150,6 +121,160 @@ struct AgendaView: View {
                 }
             )
         }
+        .sheet(isPresented: $showingNotificationSettings) {
+            notificationSettingsSheet
+        }
+    }
+    
+    // MARK: - Main View Content
+    private var mainViewContent: some View {
+        ZStack {
+            // Professional gradient background
+            SuperDesign.Tokens.colors.surfaceGradient
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header Section
+                headerSection
+                
+                // Search Section
+                searchSection
+                
+                // Stats Section
+                statsSection
+                
+                // Sync Status Section
+                syncStatusSection
+                
+                // Main Content
+                mainContentView
+                    .clipped()
+            }
+            
+            // Floating Action Button
+            floatingActionButton
+        }
+        .navigationBarHidden(true)
+        .overlay(syncNotificationOverlay)
+    }
+    
+    // MARK: - Header Section
+    private var headerSection: some View {
+        AgendaHeaderView(
+            viewMode: viewState.viewMode,
+            isEditMode: viewState.isEditMode,
+            selectedVisitsCount: viewState.selectedVisits.count,
+            headerSubtitle: viewState.headerSubtitle,
+            searchText: $viewState.searchText,
+            selectedFilter: viewState.selectedFilter,
+            showingViewModeSheet: $viewState.showingViewModeSheet,
+            showingFilterSheet: $viewState.showingFilterSheet,
+            onEditModeToggle: viewState.toggleEditMode,
+            onViewModeChange: { viewState.viewMode = $0 },
+            onFilterChange: { viewState.selectedFilter = $0 },
+            onSyncTap: {
+                syncStatusManager.startSync()
+            },
+            onNotificationSettingsTap: {
+                showingNotificationSettings = true
+            }
+        )
+    }
+    
+    // MARK: - Search Section
+    private var searchSection: some View {
+        AdvancedSearchView(searchFilter: $advancedSearchFilter)
+            .padding(.bottom, SuperDesign.Tokens.space.xs)
+    }
+    
+    // MARK: - Stats Section
+    private var statsSection: some View {
+        SearchStatsView(
+            totalVisits: vm.allVisits.count,
+            filteredVisits: filteredVisits.count,
+            searchFilter: advancedSearchFilter
+        )
+    }
+    
+    // MARK: - Sync Status Section
+    @ViewBuilder
+    private var syncStatusSection: some View {
+        if syncStatusManager.isVisible {
+            SyncStatusIndicator(
+                syncStatus: syncStatusManager.syncService.syncStatus,
+                lastSyncDate: syncStatusManager.syncService.lastSyncDate,
+                onSyncTap: {
+                    syncStatusManager.startSync()
+                },
+                onRetryTap: {
+                    syncStatusManager.retrySync()
+                }
+            )
+        }
+    }
+    
+    // MARK: - Floating Action Button
+    private var floatingActionButton: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                AgendaFloatingActionButton {
+                    viewState.showNewVisit()
+                }
+                .padding(.trailing, SuperDesign.Tokens.space.lg)
+                .padding(.bottom, SuperDesign.Tokens.space.xl)
+            }
+        }
+        .allowsHitTesting(true)
+    }
+    
+    // MARK: - Sync Notification Overlay
+    private var syncNotificationOverlay: some View {
+        SyncNotificationOverlay(
+            onSyncTap: {
+                syncStatusManager.startSync()
+            },
+            onRetryTap: {
+                syncStatusManager.retrySync()
+            }
+        )
+    }
+    
+    // MARK: - Notification Settings Sheet
+    private var notificationSettingsSheet: some View {
+        NavigationView {
+            VStack(spacing: SuperDesign.Tokens.space.lg) {
+                // Header
+                VStack(alignment: .leading, spacing: SuperDesign.Tokens.space.sm) {
+                    Text("Configuración de Notificaciones")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(SuperDesign.Tokens.colors.textPrimary)
+                    
+                    Text("Configura cuándo quieres recibir recordatorios para tus visitas")
+                        .font(.body)
+                        .foregroundColor(SuperDesign.Tokens.colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Reminder Settings
+                ReminderSettingsView(reminderMinutes: $defaultReminderMinutes)
+                
+                Spacer()
+            }
+            .padding(SuperDesign.Tokens.space.lg)
+            .background(SuperDesign.Tokens.colors.background)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Listo") {
+                        showingNotificationSettings = false
+                    }
+                    .foregroundColor(SuperDesign.Tokens.colors.primary)
+                }
+            }
+        }
     }
     
     
@@ -168,13 +293,19 @@ struct AgendaView: View {
                         selectedVisits: viewState.selectedVisits,
                         onVisitTap: editVisit,
                         onVisitLongPress: showVisitDetails,
-                        onSelectionToggle: viewState.toggleSelection
+                        onSelectionToggle: viewState.toggleSelection,
+                        onEdit: editVisit,
+                        onDelete: deleteVisit,
+                        onDuplicate: duplicateVisit,
+                        onShare: shareVisit,
+                        onToggleFavorite: toggleFavorite,
+                        onArchive: archiveVisit
                     )
                     .animatedTransition(type: .listTransition, duration: 0.4)
                 case .week:
                     AgendaWeekView(
                         selectedDate: $vm.selectedDate,
-                        visits: vm.allVisits,
+                        visits: filteredVisits,
                         onVisitTap: editVisit
                     )
                     .animatedTransition(type: .calendarTransition, duration: 0.4)
@@ -182,7 +313,7 @@ struct AgendaView: View {
                     AgendaMonthView(
                         currentMonth: vm.currentMonth,
                         selectedDate: $vm.selectedDate,
-                        visits: vm.allVisits,
+                        visits: filteredVisits,
                         onDateTap: { vm.selectedDate = $0 },
                         onVisitTap: editVisit,
                         onPreviousMonth: vm.goToPreviousMonth,
@@ -198,17 +329,44 @@ struct AgendaView: View {
     
     // MARK: - Filtered Visits
     private var filteredVisits: [AgendaVisit] {
-        AgendaVisitFilter.filterVisits(
-            vm.allVisits,
-            searchText: viewState.searchText,
-            selectedFilter: viewState.selectedFilter
-        )
+        // Use advanced search filter if it has active filters, otherwise use basic filter
+        if advancedSearchFilter.hasActiveFilters {
+            return advancedSearchFilter.filterVisits(vm.allVisits)
+        } else {
+            return AgendaVisitFilter.filterVisits(
+                vm.allVisits,
+                searchText: viewState.searchText,
+                selectedFilter: viewState.selectedFilter
+            )
+        }
     }
     
     
     // MARK: - Helper Functions
     private func showVisitDetails(_ visit: AgendaVisit) {
         viewState.showVisitDetail(visit)
+    }
+    
+    private func deleteVisit(_ visit: AgendaVisit) {
+        Task {
+            await vm.deleteVisit(visit.id)
+        }
+    }
+    
+    private func duplicateVisit(_ visit: AgendaVisit) {
+        // TODO: Implement duplicate visit
+    }
+    
+    private func shareVisit(_ visit: AgendaVisit) {
+        // TODO: Implement share visit
+    }
+    
+    private func toggleFavorite(_ visit: AgendaVisit) {
+        // TODO: Implement toggle favorite
+    }
+    
+    private func archiveVisit(_ visit: AgendaVisit) {
+        // TODO: Implement archive visit
     }
     
     private func bulkDeleteVisits() {

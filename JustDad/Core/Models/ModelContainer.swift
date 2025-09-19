@@ -33,7 +33,8 @@ class ModelContainerManager {
             DiaryEntry.self,
             DiaryAttachment.self,
             CommunityPost.self,
-            UserPreferences.self
+            UserPreferences.self,
+            CustomCategory.self
         ])
         
         let modelConfiguration = ModelConfiguration(
