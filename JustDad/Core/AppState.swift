@@ -7,8 +7,13 @@
 
 import Foundation
 import Combine
+import SwiftUI
 
+@MainActor
 class AppState: ObservableObject {
+    // MARK: - Accessibility
+    @Published var accessibilityManager: AccessibilityManager
+    
     // MARK: - Settings
     @Published var biometricAuthEnabled: Bool = false
     @Published var notificationsEnabled: Bool = true
@@ -27,6 +32,7 @@ class AppState: ObservableObject {
     @Published var lastDataExport: Date?
     
     init() {
+        self.accessibilityManager = AccessibilityManager.shared
         // Load saved state from UserDefaults if needed
         loadState()
     }

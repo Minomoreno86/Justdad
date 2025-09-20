@@ -14,8 +14,17 @@ enum Route: Hashable, CaseIterable {
     case journal
     case journalDetail(entryId: String)
     case journalNew
+    // Unified Journal Routes
+    case unifiedJournal
+    case unifiedJournalDetail(entryId: String)
+    case unifiedJournalNew
+    case unifiedJournalFilter
     case emotions
     case emotionsDetail(date: Date)
+    // Emotion Archive Routes
+    case emotionArchive
+    case emotionArchiveDetail(entryId: String)
+    case emotionArchiveEdit(entryId: String)
     case community
     case communityPost(postId: String)
     case sos
@@ -65,10 +74,24 @@ extension Route {
             return NSLocalizedString("journal.detail.title", comment: "")
         case .journalNew:
             return NSLocalizedString("journal.new.title", comment: "")
+        case .unifiedJournal:
+            return "Journal Unificado"
+        case .unifiedJournalDetail:
+            return "Detalle de Entrada"
+        case .unifiedJournalNew:
+            return "Nueva Entrada"
+        case .unifiedJournalFilter:
+            return "Filtros"
         case .emotions:
             return NSLocalizedString("emotions.title", comment: "")
         case .emotionsDetail:
             return NSLocalizedString("emotions.detail.title", comment: "")
+        case .emotionArchive:
+            return "Archivo de Emociones"
+        case .emotionArchiveDetail:
+            return "Detalle de Entrada"
+        case .emotionArchiveEdit:
+            return "Editar Entrada"
         case .community:
             return NSLocalizedString("community.title", comment: "")
         case .communityPost:

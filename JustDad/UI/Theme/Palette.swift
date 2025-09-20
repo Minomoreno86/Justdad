@@ -49,21 +49,24 @@ struct Palette {
     static let tertiaryText = Color.gray.opacity(0.7)
     static let separator = Color.gray.opacity(0.3)
     
-    // MARK: - Emotions Colors
-    static let emotion1 = Color.red     // Very sad
-    static let emotion2 = Color.orange  // Sad
-    static let emotion3 = Color.gray    // Neutral
-    static let emotion4 = Color.blue    // Happy
-    static let emotion5 = Color.green   // Very happy
+    // MARK: - Professional Emotions Colors
+    static let emotionVerySad = Color(red: 0.8, green: 0.2, blue: 0.2)    // Rojo profundo
+    static let emotionSad = Color(red: 0.9, green: 0.5, blue: 0.2)        // Naranja cálido
+    static let emotionNeutral = Color(red: 0.6, green: 0.6, blue: 0.6)    // Gris elegante
+    static let emotionHappy = Color(red: 0.2, green: 0.6, blue: 0.9)      // Azul confianza
+    static let emotionVeryHappy = Color(red: 0.2, green: 0.8, blue: 0.4)  // Verde vitalidad
+    
+    // MARK: - Legacy Emotions Colors (for backward compatibility)
+    static let emotion1 = emotionVerySad
+    static let emotion2 = emotionSad
+    static let emotion3 = emotionNeutral
+    static let emotion4 = emotionHappy
+    static let emotion5 = emotionVeryHappy
     
     // MARK: - Category Colors
     static let categoryEducation = Color.blue
     static let categoryHealth = Color.red
     static let categoryFood = Color.green
-    static let categoryTransport = Color.purple
-    static let categoryEntertainment = Color.orange
-    static let categoryOther = Color.gray
-    
     // MARK: - Additional Colors (for existing references)
     static let gray400 = Color.gray.opacity(0.6)
     
@@ -79,3 +82,4 @@ struct Palette {
         return Color.black
     }
 }
+

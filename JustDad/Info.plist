@@ -23,5 +23,9 @@
 	<!-- Camera Permission for Receipt Scanning -->
 	<key>NSCameraUsageDescription</key>
 	<string>JustDad necesita acceso a la cámara para escanear facturas y adjuntarlas a tus gastos.</string>
+	
+	<!-- Microphone Permission for Voice Notes -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>JustDad necesita acceso al micrófono para grabar notas de voz en tu journaling personal y reflexiones emocionales.</string>
 </dict>
 </plist>

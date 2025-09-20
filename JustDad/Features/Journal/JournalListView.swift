@@ -9,19 +9,23 @@ import SwiftUI
 
 struct JournalListView: View {
     @StateObject private var router = NavigationRouter.shared
+    @StateObject private var journalingService = IntelligentJournalingService.shared
     @State private var searchText = ""
     
-    private var entries: [MockJournalEntry] {
-        MockJournalEntry.sampleEntries
+    private var entries: [JournalEntry] {
+        let sortedEntries = journalingService.journalEntries.sorted { $0.date > $1.date }
+        print("📋 JournalListView - Total entries: \(sortedEntries.count)")
+        return sortedEntries
     }
     
-    private var filteredEntries: [MockJournalEntry] {
+    private var filteredEntries: [JournalEntry] {
         if searchText.isEmpty {
             return entries
         } else {
             return entries.filter { entry in
-                entry.title.localizedCaseInsensitiveContains(searchText) ||
-                entry.content.localizedCaseInsensitiveContains(searchText)
+                entry.prompt.text.localizedCaseInsensitiveContains(searchText) ||
+                entry.content.localizedCaseInsensitiveContains(searchText) ||
+                entry.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
             }
         }
     }
@@ -37,7 +41,7 @@ struct JournalListView: View {
                         action: { router.push(.journalNew) }
                     )
                 } else {
-                    // Search bar
+                    
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.secondary)
@@ -51,36 +55,48 @@ struct JournalListView: View {
                     List(filteredEntries) { entry in
                         JournalEntryRow(entry: entry)
                             .onTapGesture {
-                                router.push(.journalDetail(entryId: entry.id.uuidString))
+                                // TODO: Navigate to detail view
                             }
                     }
                     .listStyle(PlainListStyle())
                 }
-            }
-            .navigationTitle("Journal")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { router.push(.journalNew) }) {
-                        Image(systemName: "plus")
-                    }
+        }
+        .navigationTitle("Journal")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { 
+                    journalingService.loadJournalEntries()
+                    print("🔄 Manual refresh - Total entries: \(journalingService.journalEntries.count)")
+                }) {
+                    Image(systemName: "arrow.clockwise")
                 }
             }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { router.push(.journalNew) }) {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .onAppear {
+            print("🔄 JournalListView appeared - Total entries: \(journalingService.journalEntries.count)")
+            journalingService.loadJournalEntries()
+        }
         }
     }
 }
 
 // MARK: - Journal Entry Row
 struct JournalEntryRow: View {
-    let entry: MockJournalEntry
+    let entry: JournalEntry
     
     private var moodEmoji: String {
-        switch entry.mood {
-        case .happy: return "😊"
-        case .sad: return "😢"
+        switch entry.emotion {
+        case .verySad: return "😢"
+        case .sad: return "😔"
         case .neutral: return "😐"
-        case .excited: return "🎉"
-        case .stressed: return "😰"
-        case .grateful: return "�"
+        case .happy: return "😊"
+        case .veryHappy: return "🎉"
         }
     }
     
@@ -88,9 +104,10 @@ struct JournalEntryRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(entry.title)
-                        .font(Typography.headline)
-                        .foregroundColor(Palette.textPrimary)
+                    Text(entry.prompt.text)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
                     
                     Spacer()
                     
@@ -99,46 +116,37 @@ struct JournalEntryRow: View {
                 }
                 
                 Text(entry.content)
-                    .font(Typography.body)
-                    .foregroundColor(Palette.textSecondary)
+                    .font(.body)
+                    .foregroundColor(.secondary)
                     .lineLimit(2)
                 
                 HStack {
                     Text(entry.date.formatted(date: .abbreviated, time: .shortened))
-                        .font(Typography.caption)
-                        .foregroundColor(Palette.textSecondary)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     
                     Spacer()
                     
+                    if entry.audioURL != nil {
+                        Image(systemName: "waveform")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                    
                     ForEach(entry.tags.prefix(2), id: \.self) { tag in
                         Text("#\(tag)")
-                            .font(Typography.caption)
-                            .foregroundColor(Palette.primary)
+                            .font(.caption)
+                            .foregroundColor(.blue)
                     }
                 }
             }
             
             Spacer()
             
-            Image(systemName: entry.kind.iconName)
-                .foregroundColor(Palette.primary)
+            Image(systemName: entry.prompt.category.icon)
+                .foregroundColor(entry.prompt.category.color)
                 .font(.title3)
         }
         .padding(.vertical, 8)
     }
-}
-
-// MARK: - Kind Extension
-extension MockJournalEntry.Kind {
-    var iconName: String {
-        switch self {
-        case .text: return "doc.text"
-        case .audio: return "waveform"
-        case .photo: return "photo"
-        }
-    }
-}
-
-#Preview {
-    JournalListView()
 }

@@ -50,9 +50,13 @@ struct FinanceView: View {
     @State private var showingAllTransactions = false
     @State private var showingNotificationSettings = false
     @State private var showingCategoryManagement = false
+    @State private var showingAdvancedFilters = false
+    @State private var showingFinancialGoals = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var selectedTab = 0
+    
+    @StateObject private var filterService = AdvancedFilterService()
     
     private let periods = ["Esta Semana", "Este Mes", "Este Año"]
     
@@ -173,6 +177,12 @@ struct FinanceView: View {
         .sheet(isPresented: $showingCategoryManagement) {
             CustomCategoryManagementView()
         }
+        .sheet(isPresented: $showingFinancialGoals) {
+            FinancialGoalsView()
+        }
+        .sheet(isPresented: $showingAdvancedFilters) {
+            AdvancedFilterView(filterService: filterService)
+        }
         .alert("Información", isPresented: $showingAlert) {
             Button("OK") { }
         } message: {
@@ -256,6 +266,11 @@ struct FinanceView: View {
                 gradientColors: [Color.blue, Color.purple],
                 isMainCard: true
             )
+            .accessibleCard(
+                title: "Balance del Mes",
+                content: "Balance financiero actual del mes",
+                value: formatCurrency(viewModel.balanceAmount)
+            )
             
             // Secondary Cards
             HStack(spacing: 12) {
@@ -271,6 +286,11 @@ struct FinanceView: View {
                        )
                    }
                    .buttonStyle(PlainButtonStyle())
+                   .accessibleButton(
+                       label: "Manutención",
+                       hint: "Toca para agregar gastos de manutención",
+                       action: "Agregar manutención"
+                   )
                 
                 Button(action: { viewModel.showNewExpenseSheet() }) {
                     ProfessionalFinanceCard(
@@ -284,6 +304,11 @@ struct FinanceView: View {
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
+                .accessibleButton(
+                    label: "Extras",
+                    hint: "Toca para agregar gastos adicionales",
+                    action: "Agregar gastos"
+                )
             }
         }
     }
@@ -345,15 +370,53 @@ struct FinanceView: View {
                 Text("Transacciones Recientes")
                     .font(.headline)
                     .foregroundColor(Color.adaptiveLabel)
+                    .accessibleHeading(1)
                 
                 Spacer()
                 
-                Button("Ver Todo") {
-                    showingAllTransactions = true
+                HStack(spacing: 12) {
+                    // Filter Button
+                    Button(action: {
+                        showingAdvancedFilters = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                            
+                            Text("Filtros")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .accessibleButton(
+                        label: "Filtros",
+                        hint: "Toca para aplicar filtros avanzados a las transacciones",
+                        action: "Abrir filtros"
+                    )
+                    
+                    Button("Ver Todo") {
+                        showingAllTransactions = true
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(Color.blue)
+                    .accessibleButton(
+                        label: "Ver Todo",
+                        hint: "Toca para ver todas las transacciones",
+                        action: "Ver todas las transacciones"
+                    )
                 }
-                .font(.subheadline)
-                .foregroundColor(Color.blue)
             }
+            
+            // Filter Bar
+            FilterBarView(
+                filterService: filterService,
+                onTap: {
+                    showingAdvancedFilters = true
+                }
+            )
             
             ProfessionalStateContainer(
                 loadingState: viewModel.loadingState,
@@ -368,36 +431,40 @@ struct FinanceView: View {
                     viewModel.showNewExpenseSheet()
                 }
             ) {
-                List {
-                    ForEach(Array(viewModel.recentExpenses.prefix(5)), id: \.id) { expense in
-                        ProfessionalExpenseRow(
-                            title: expense.title,
-                            category: expense.category.displayName,
-                            amount: Double(truncating: NSDecimalNumber(decimal: expense.amount)),
-                            date: expense.date,
-                            icon: expenseIcon(for: expense.category),
-                            color: expenseColor(for: expense.category)
-                        )
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                Task {
-                                    await viewModel.deleteExpense(expense)
-                                }
-                            } label: {
-                                Label("Eliminar", systemImage: "trash.fill")
+                AccessibleList(
+                    data: Array(filterService.applyFilter(to: viewModel.recentExpenses).prefix(5)),
+                    accessibilityLabel: "Lista de transacciones recientes"
+                ) { expense in
+                    ProfessionalExpenseRow(
+                        title: expense.title,
+                        category: expense.category.displayName,
+                        amount: Double(truncating: NSDecimalNumber(decimal: expense.amount)),
+                        date: expense.date,
+                        icon: expenseIcon(for: expense.category),
+                        color: expenseColor(for: expense.category)
+                    )
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            Task {
+                                await viewModel.deleteExpense(expense)
                             }
-                            
-                            Button {
-                                viewModel.editingExpense = expense
-                                viewModel.showEditExpenseSheet()
-                            } label: {
-                                Label("Editar", systemImage: "pencil")
-                            }
-                            .tint(.blue)
+                        } label: {
+                            Label("Eliminar", systemImage: "trash.fill")
                         }
+                        .accessibilityLabel("Eliminar transacción")
+                        .accessibilityHint("Elimina esta transacción de la lista")
+                        
+                        Button {
+                            viewModel.editingExpense = expense
+                            viewModel.showEditExpenseSheet()
+                        } label: {
+                            Label("Editar", systemImage: "pencil")
+                        }
+                        .tint(.blue)
+                        .accessibilityLabel("Editar transacción")
+                        .accessibilityHint("Edita los detalles de esta transacción")
                     }
                 }
-                .listStyle(PlainListStyle())
                 .frame(height: CGFloat(min(viewModel.recentExpenses.count, 5)) * 80) // Ajustar altura dinámicamente
             }
         }
@@ -531,6 +598,7 @@ struct FinanceView: View {
                 Text("Herramientas Financieras")
                     .font(.headline)
                     .foregroundColor(Color.adaptiveLabel)
+                    .accessibleHeading(2)
                 
                 Spacer()
             }
@@ -579,6 +647,11 @@ struct FinanceView: View {
                     .shadow(color: Color.green.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .accessibleButton(
+                    label: "Presupuestos Inteligentes",
+                    hint: "Toca para configurar y gestionar presupuestos automáticos",
+                    action: "Abrir presupuestos"
+                )
                 
                 // Professional Reports Button
                 Button(action: { showingProfessionalReports = true }) {
@@ -765,6 +838,50 @@ struct FinanceView: View {
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .shadow(color: Color.teal.opacity(0.3), radius: 8, x: 0, y: 4)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                // Financial Goals Button
+                Button(action: { showingFinancialGoals = true }) {
+                    HStack {
+                        Image(systemName: "target")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Metas Financieras")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                            
+                            Text("Establece y cumple objetivos de ahorro")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                        
+                        Spacer()
+                        
+                        VStack(spacing: 2) {
+                            Image(systemName: "arrow.right")
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                            
+                            Text("NUEVO")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.yellow)
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.blue, Color.purple],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
