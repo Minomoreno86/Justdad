@@ -21,7 +21,6 @@ enum Tab: String, CaseIterable {
 struct EmotionsView: View {
     @EnvironmentObject var router: NavigationRouter
     @StateObject private var journalingService = IntelligentJournalingService.shared
-    @State private var emotionEntries: [MockEmotionEntry] = []
     @State private var showingMoodTest = false
     @State private var showingGuidedExercise = false
     @State private var selectedEmotion: EmotionalState? = nil
@@ -176,7 +175,7 @@ struct EmotionsView: View {
                     .font(.headline)
                 Spacer()
                 Button("Ver todas") {
-                    selectedTab = .journal
+                    selectedTab = .emotions
                 }
             }
             .padding(.horizontal)
@@ -224,26 +223,6 @@ struct EmotionsView: View {
 
 // MARK: - Supporting Views
 
-// MARK: - Mock Emotion Entry
-struct MockEmotionEntry: Identifiable {
-    let id = UUID()
-    var mood: Int // 1-5 scale
-    var note: String?
-    var date: Date
-    
-    static let sampleEntries: [MockEmotionEntry] = [
-        MockEmotionEntry(
-            mood: 4,
-            note: "Feeling positive today after spending time with kids",
-            date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
-        ),
-        MockEmotionEntry(
-            mood: 3,
-            note: "Neutral day, managing stress well",
-            date: Calendar.current.date(byAdding: .day, value: -2, to: Date()) ?? Date()
-        )
-    ]
-}
 
 // MARK: - Professional Wellness Card Component
 struct WellnessCard: View {

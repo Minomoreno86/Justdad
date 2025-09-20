@@ -494,6 +494,18 @@ public struct JournalEntry: Identifiable, Codable {
     
     var audioURL: URL? {
         guard let audioURLString = audioURLString else { return nil }
+        
+        // If it's a file URL, try to reconstruct the path
+        if audioURLString.hasPrefix("file://") {
+            // Extract just the filename from the stored path
+            let filename = URL(string: audioURLString)?.lastPathComponent ?? ""
+            if !filename.isEmpty {
+                let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                return documentsPath.appendingPathComponent(filename)
+            }
+        }
+        
+        // Fallback to original behavior
         return URL(string: audioURLString)
     }
     
