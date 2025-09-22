@@ -371,7 +371,7 @@ struct ProfessionalReportsView: View {
             .buttonStyle(PlainButtonStyle())
             
             if reportService.isGeneratingReport {
-                ProgressView(value: reportService.reportProgress)
+                ProgressView()
                     .progressViewStyle(LinearProgressViewStyle(tint: .blue))
                     .scaleEffect(y: 2)
             }

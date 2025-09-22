@@ -133,7 +133,7 @@ struct LoadingStateView: View {
     // MARK: - Progress Bar
     private var progressBar: some View {
         VStack(spacing: SuperDesign.Tokens.space.sm) {
-            ProgressView(value: progress, total: 1.0)
+            ProgressView()
                 .progressViewStyle(LinearProgressViewStyle(tint: SuperDesign.Tokens.colors.primary))
                 .frame(height: 4)
             

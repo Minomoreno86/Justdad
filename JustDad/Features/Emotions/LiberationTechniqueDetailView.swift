@@ -30,15 +30,21 @@ struct LiberationTechniqueDetailView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                if technique.isForgivenessTherapy {
-                    // Redirect to Forgiveness Therapy View
-                    ForgivenessTherapyView()
-                } else if technique == .liberationLetter {
-                    // Redirect to Liberation Letter System
-                    LiberationLetterView()
-                        .onDisappear {
-                            dismiss()
-                        }
+                        if technique.isForgivenessTherapy {
+                            // Redirect to Forgiveness Therapy View
+                            ForgivenessTherapyView()
+                        } else if technique == .liberationLetter {
+                            // Redirect to Liberation Letter System
+                            LiberationLetterView()
+                                .onDisappear {
+                                    dismiss()
+                                }
+                        } else if technique == .psychogenealogy {
+                            // Redirect to Psychogenealogy System
+                            PsychogenealogyView()
+                                .onDisappear {
+                                    dismiss()
+                                }
                 } else if isSessionActive {
                     sessionView
                 } else {
@@ -154,8 +160,9 @@ struct LiberationTechniqueDetailView: View {
     private var sessionView: some View {
         VStack(spacing: 0) {
             // Progress Bar
-            ProgressView(value: Double(currentStepIndex + 1), total: Double(steps.count))
-                .progressViewStyle(LinearProgressViewStyle(tint: technique.color))
+            ProgressView()
+                .progressViewStyle(LinearProgressViewStyle())
+                .tint(technique.color)
                 .padding()
             
             // Current Step

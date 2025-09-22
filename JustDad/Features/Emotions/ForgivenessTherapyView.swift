@@ -185,7 +185,7 @@ struct ForgivenessTherapyView: View {
             
             // Premium Progress Bar
             VStack(spacing: 8) {
-                ProgressView(value: Double(getTotalCompletedDays()), total: 21)
+                ProgressView()
                     .progressViewStyle(LinearProgressViewStyle(tint: .yellow))
                     .scaleEffect(y: 3)
                     .background(

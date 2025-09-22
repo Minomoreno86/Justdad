@@ -136,7 +136,7 @@ struct LiberationLetterView: View {
                     .foregroundColor(.secondary)
             }
             
-            ProgressView(value: Double(liberationService.currentDay), total: 21.0)
+            ProgressView()
                 .progressViewStyle(LinearProgressViewStyle(tint: .blue))
                 .scaleEffect(y: 2)
             

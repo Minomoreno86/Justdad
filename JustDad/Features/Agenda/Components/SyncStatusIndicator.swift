@@ -231,7 +231,7 @@ struct SyncProgressView: View {
     var body: some View {
         VStack(spacing: SuperDesign.Tokens.space.sm) {
             // Progress Bar
-            ProgressView(value: progress)
+            ProgressView()
                 .progressViewStyle(LinearProgressViewStyle(tint: SuperDesign.Tokens.colors.primary))
                 .scaleEffect(x: 1, y: 2, anchor: .center)
             

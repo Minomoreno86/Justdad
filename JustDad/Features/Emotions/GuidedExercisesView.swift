@@ -379,7 +379,7 @@ struct CurrentExerciseCard: View {
                             .foregroundColor(.secondary)
                     }
                     
-                    ProgressView(value: exercisesService.currentTime, total: exercisesService.totalDuration)
+                    ProgressView()
                         .progressViewStyle(LinearProgressViewStyle(tint: exercise.category.color))
                 }
             }

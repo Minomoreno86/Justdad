@@ -586,7 +586,7 @@ struct HabitCard: View {
                             .foregroundColor(habit.category.color)
                     }
                     
-                    ProgressView(value: habit.completionRate)
+                    ProgressView()
                         .progressViewStyle(LinearProgressViewStyle(tint: habit.category.color))
                 }
                 
@@ -908,7 +908,7 @@ struct WeeklyProgressRow: View {
                     .foregroundColor(.secondary)
             }
             
-            ProgressView(value: progress)
+            ProgressView()
                 .progressViewStyle(LinearProgressViewStyle(tint: .blue))
         }
     }

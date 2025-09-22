@@ -158,7 +158,7 @@ struct CustomCategoryManagementView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 if categoryService.isLoading {
-                    ProgressView("Cargando categorías...")
+                    ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .padding(.top, 50)
                 } else {

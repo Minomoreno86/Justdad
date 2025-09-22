@@ -74,7 +74,7 @@ struct BudgetCard: View {
                         .foregroundColor(progressColor)
                 }
                 
-                ProgressView(value: progress)
+                ProgressView()
                     .progressViewStyle(LinearProgressViewStyle(tint: progressColor))
                     .scaleEffect(x: 1, y: 2, anchor: .center)
             }
@@ -199,7 +199,7 @@ struct OverallUtilizationView: View {
                 }
             }
             
-            ProgressView(value: insights.utilizationPercentage)
+            ProgressView()
                 .progressViewStyle(LinearProgressViewStyle(tint: utilizationColor))
                 .scaleEffect(x: 1, y: 2, anchor: .center)
         }

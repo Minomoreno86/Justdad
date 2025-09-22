@@ -222,7 +222,7 @@ struct AccessibleProgressBar: View {
                     .foregroundColor(.secondary)
             }
             
-            ProgressView(value: progress, total: total)
+            ProgressView()
                 .progressViewStyle(LinearProgressViewStyle(tint: .blue))
                 .scaleEffect(x: 1, y: 2, anchor: .center)
         }

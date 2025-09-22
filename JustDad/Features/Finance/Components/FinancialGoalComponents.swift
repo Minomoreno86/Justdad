@@ -99,7 +99,7 @@ struct GoalProgressCard: View {
                         .foregroundColor(.primary)
                 }
                 
-                ProgressView(value: goal.progressPercentage)
+                ProgressView()
                     .progressViewStyle(LinearProgressViewStyle(tint: goal.category.color))
                     .scaleEffect(x: 1, y: 2, anchor: .center)
             }
@@ -395,7 +395,7 @@ struct GoalStatsOverview: View {
                         .foregroundColor(.primary)
                 }
                 
-                ProgressView(value: stats.overallProgress)
+                ProgressView()
                     .progressViewStyle(LinearProgressViewStyle(tint: .blue))
                     .scaleEffect(x: 1, y: 3, anchor: .center)
             }

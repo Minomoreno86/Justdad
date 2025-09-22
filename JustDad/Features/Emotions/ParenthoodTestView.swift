@@ -70,7 +70,7 @@ struct ParenthoodTestView: View {
                         .cornerRadius(12)
                 }
                 
-                ProgressView(value: progress)
+                ProgressView()
                     .progressViewStyle(LinearProgressViewStyle(tint: testType.color))
                     .scaleEffect(x: 1, y: 2, anchor: .center)
             }

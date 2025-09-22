@@ -127,7 +127,7 @@ struct LiberationLetterProgressView: View {
                     .foregroundColor(.blue)
             }
             
-            ProgressView(value: Double(statistics.completedSessions), total: 21.0)
+            ProgressView()
                 .progressViewStyle(LinearProgressViewStyle(tint: .blue))
                 .scaleEffect(y: 3)
             
@@ -204,7 +204,7 @@ struct LiberationLetterProgressView: View {
                         }
                     }
                     
-                    ProgressView(value: Double(phaseProgress.completedDays), total: Double(phaseProgress.totalDays))
+                    ProgressView()
                         .progressViewStyle(LinearProgressViewStyle(tint: phase.color))
                         .scaleEffect(y: 2)
                     

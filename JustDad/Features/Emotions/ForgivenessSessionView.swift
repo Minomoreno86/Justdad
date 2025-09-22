@@ -8,6 +8,26 @@
 import SwiftUI
 import AVFoundation
 import Speech
+import UIKit
+
+// MARK: - Speech Recognition States
+
+enum SpeechState: Equatable {
+    case idle
+    case starting
+    case recording
+    case stopping
+    case failed(String) // Using String instead of Error for Equatable conformance
+    
+    var isBusy: Bool {
+        switch self {
+        case .starting, .recording, .stopping:
+            return true
+        case .idle, .failed:
+            return false
+        }
+    }
+}
 
 // MARK: - Energy Visualization Domain
 
@@ -105,16 +125,28 @@ extension AudioPlayerService: Audio {
 
 struct ForgivenessSessionView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var forgivenessService = ForgivenessService.shared
-    @StateObject private var journalingService = IntelligentJournalingService.shared
-    @StateObject private var speechService = SpeechRecognitionService.shared
-    @StateObject private var audioService = AudioPlayerService.shared
-    @StateObject private var hapticManager = HapticFeedbackManager.shared
+    @StateObject private var forgivenessService: ForgivenessService
+    @StateObject private var journalingService: IntelligentJournalingService
+    @StateObject private var speechService: RobustSpeechRecognitionService
+    @StateObject private var audioService: AudioPlayerService
+    @StateObject private var hapticManager: HapticFeedbackManager
     
     let phase: ForgivenessPhase
     let day: Int
     
     @State private var currentStep: ForgivenessSessionStep = .welcome
+    
+    // MARK: - Initializer
+    init(phase: ForgivenessPhase, day: Int) {
+        self.phase = phase
+        self.day = day
+        self._forgivenessService = StateObject(wrappedValue: ForgivenessService.shared)
+        self._journalingService = StateObject(wrappedValue: IntelligentJournalingService.shared)
+        self._speechService = StateObject(wrappedValue: RobustSpeechRecognitionService.shared)
+        self._audioService = StateObject(wrappedValue: AudioPlayerService.shared)
+        self._hapticManager = StateObject(wrappedValue: HapticFeedbackManager.shared)
+        self._breathingSessionManager = StateObject(wrappedValue: BreathingSessionManager())
+    }
     @State private var currentSession: ForgivenessSession?
     @State private var emotionalStateBefore: String = "neutral"
     @State private var peaceLevelBefore: Int = 5
@@ -124,10 +156,14 @@ struct ForgivenessSessionView: View {
     @State private var isSessionCompleted = false
     @State private var showingCompletion = false
     
+    // Debounce controls
+    @State private var lastSpeechButtonTap: Date = .distantPast
+    private let speechButtonDebounceInterval: TimeInterval = 1.0
+    
     // Breathing state variables
     @State private var currentBreathingPhase: BreathingPhase = .inhale
     @State private var isBreathingActive = false
-    @StateObject private var breathingSessionManager = BreathingSessionManager()
+    @StateObject private var breathingSessionManager: BreathingSessionManager
     
     var body: some View {
         NavigationStack {
@@ -178,7 +214,7 @@ struct ForgivenessSessionView: View {
                     .foregroundColor(.secondary)
             }
             
-            ProgressView(value: Double(currentStep.rawValue + 1), total: Double(ForgivenessSessionStep.allCases.count))
+            ProgressView()
                 .progressViewStyle(LinearProgressViewStyle(tint: .pink))
         }
         .padding()
@@ -431,7 +467,7 @@ struct ForgivenessSessionView: View {
                             
                             Spacer()
                             
-                            ProgressView(value: Double(breathingSessionManager.currentRepetition), total: Double(breathingSessionManager.repetitions))
+                            ProgressView()
                                 .progressViewStyle(LinearProgressViewStyle(tint: .cyan))
                                 .frame(width: 100)
                         }
@@ -761,6 +797,28 @@ struct ForgivenessSessionView: View {
                                     )
                             )
                             
+                            // Service state indicator
+                            if speechService.isBusy {
+                                VStack(spacing: 8) {
+                                    HStack {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                            .scaleEffect(0.8)
+                                        
+                                        Text("Procesando...")
+                                            .font(.caption)
+                                            .foregroundColor(.white.opacity(0.8))
+                                    }
+                                    
+                                    if case .failed(let errorMessage) = speechService.state {
+                                        Text("Error: \(errorMessage)")
+                                            .font(.caption)
+                                            .foregroundColor(.red.opacity(0.8))
+                                            .padding(.horizontal, 20)
+                                    }
+                                }
+                            }
+                            
                             // Recognized text display
                             if !speechService.recognizedText.isEmpty {
                                 VStack(alignment: .leading, spacing: 8) {
@@ -786,14 +844,28 @@ struct ForgivenessSessionView: View {
                         }
                     }
                     
-                    // Premium action button
+                    // Premium action button with debounce
                     Button(action: {
+                        let now = Date()
+                        guard now.timeIntervalSince(lastSpeechButtonTap) >= speechButtonDebounceInterval else {
+                            print("⚠️ Speech button tapped too quickly, ignoring")
+                            return
+                        }
+                        lastSpeechButtonTap = now
+                        
+                        // Check if service is busy
+                        guard !speechService.isBusy else {
+                            print("⚠️ Speech service is busy, ignoring request")
+                            return
+                        }
+                        
                         if speechService.isRecording {
                             speechService.stopRecording()
                             hapticManager.medium()
                             
                             // Calculate reading accuracy
-                            let accuracy = speechService.calculateReadingAccuracy(expectedText: letter.content)
+                            let currentLetter = forgivenessService.getLetterForDay(day, phase: phase)
+                            let accuracy = speechService.calculateReadingAccuracy(expectedText: currentLetter.content)
                             if accuracy > 0.7 {
                                 hapticManager.success()
                             } else {
@@ -831,7 +903,8 @@ struct ForgivenessSessionView: View {
                         )
                         .shadow(color: speechService.isRecording ? .red.opacity(0.3) : .pink.opacity(0.3), radius: 10, x: 0, y: 5)
                     }
-                    .disabled(!speechService.hasPermission)
+                    .disabled(!speechService.hasPermission || speechService.isBusy)
+                    .opacity(speechService.isBusy ? 0.6 : 1.0)
                     .padding(.horizontal, 40)
                 }
                 
@@ -1626,7 +1699,12 @@ struct ForgivenessSessionView: View {
     }
     
     private func completeSession() {
-        guard let session = currentSession else { return }
+        guard let session = currentSession else { 
+            print("❌ Error: currentSession is nil")
+            return 
+        }
+        
+        print("✅ Completing session for day \(session.day), phase \(session.phase)")
         
         forgivenessService.completeSession(
             session,
@@ -1637,6 +1715,8 @@ struct ForgivenessSessionView: View {
         
         forgivenessService.stopBinauralAudio()
         showingCompletion = true
+        
+        print("✅ Session completed successfully")
     }
     
     private func getPeaceLevelForEmotion(_ emotion: EmotionalState) -> Int {

@@ -653,7 +653,7 @@ struct RealBudgetAnalysisCard: View {
                         .foregroundColor(analysis.budgetEfficiency > 90 ? .red : analysis.budgetEfficiency > 70 ? .orange : .green)
                 }
                 
-                ProgressView(value: analysis.budgetEfficiency, total: 100)
+                ProgressView()
                     .progressViewStyle(LinearProgressViewStyle(tint: analysis.budgetEfficiency > 90 ? .red : analysis.budgetEfficiency > 70 ? .orange : .green))
                     .scaleEffect(x: 1, y: 2, anchor: .center)
                 

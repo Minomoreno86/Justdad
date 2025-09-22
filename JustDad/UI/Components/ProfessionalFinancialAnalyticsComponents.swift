@@ -769,7 +769,7 @@ struct HealthScoreRow: View {
             Spacer()
             
             HStack(spacing: 8) {
-                ProgressView(value: score, total: 100)
+                ProgressView()
                     .progressViewStyle(LinearProgressViewStyle(tint: color))
                     .frame(width: 60)
                 

@@ -36,7 +36,7 @@ struct BreathingRepetitionControl: View {
     }
     
     private var progressBarView: some View {
-        ProgressView(value: Double(currentRepetition), total: Double(repetitions))
+        ProgressView()
             .progressViewStyle(LinearProgressViewStyle(tint: .cyan))
             .scaleEffect(x: 1, y: 2, anchor: .center)
             .background(Color.white.opacity(0.2))
