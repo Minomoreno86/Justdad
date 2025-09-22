@@ -21,6 +21,10 @@ public class ParenthoodTestService: ObservableObject {
         case stressManagement = "stress_management"
         case parentingConfidence = "parenting_confidence"
         case workLifeBalance = "work_life_balance"
+        case legalKnowledge = "legal_knowledge"
+        case coparenting = "coparenting"
+        case financialStability = "financial_stability"
+        case resilience = "resilience"
         
         public var id: String { rawValue }
         
@@ -31,6 +35,10 @@ public class ParenthoodTestService: ObservableObject {
             case .stressManagement: return "Gestión del Estrés"
             case .parentingConfidence: return "Confianza Parental"
             case .workLifeBalance: return "Balance Vida-Trabajo"
+            case .legalKnowledge: return "Conocimiento Legal"
+            case .coparenting: return "Co-Parentalidad"
+            case .financialStability: return "Estabilidad Financiera"
+            case .resilience: return "Resiliencia"
             }
         }
         
@@ -41,6 +49,10 @@ public class ParenthoodTestService: ObservableObject {
             case .stressManagement: return "Analiza cómo manejas el estrés en situaciones difíciles"
             case .parentingConfidence: return "Determina tu nivel de confianza como padre"
             case .workLifeBalance: return "Evalúa tu capacidad para balancear trabajo y familia"
+            case .legalKnowledge: return "Evalúa tu conocimiento sobre derechos y responsabilidades legales"
+            case .coparenting: return "Mide tu capacidad para co-parentalizar efectivamente"
+            case .financialStability: return "Analiza tu preparación financiera post-divorcio"
+            case .resilience: return "Evalúa tu capacidad de recuperación ante adversidades"
             }
         }
         
@@ -51,6 +63,10 @@ public class ParenthoodTestService: ObservableObject {
             case .stressManagement: return "lungs.fill"
             case .parentingConfidence: return "person.2.fill"
             case .workLifeBalance: return "scale.3d"
+            case .legalKnowledge: return "book.closed.fill"
+            case .coparenting: return "person.2.circle.fill"
+            case .financialStability: return "dollarsign.circle.fill"
+            case .resilience: return "shield.fill"
             }
         }
         
@@ -61,6 +77,10 @@ public class ParenthoodTestService: ObservableObject {
             case .stressManagement: return .green
             case .parentingConfidence: return .purple
             case .workLifeBalance: return .orange
+            case .legalKnowledge: return .indigo
+            case .coparenting: return .teal
+            case .financialStability: return .yellow
+            case .resilience: return .pink
             }
         }
         
@@ -71,6 +91,10 @@ public class ParenthoodTestService: ObservableObject {
             case .stressManagement: return "6-8 min"
             case .parentingConfidence: return "5-7 min"
             case .workLifeBalance: return "4-6 min"
+            case .legalKnowledge: return "3-5 min"
+            case .coparenting: return "5-7 min"
+            case .financialStability: return "4-6 min"
+            case .resilience: return "5-7 min"
             }
         }
     }
@@ -88,6 +112,14 @@ public class ParenthoodTestService: ObservableObject {
             return parentingConfidenceQuestions
         case .workLifeBalance:
             return workLifeBalanceQuestions
+        case .legalKnowledge:
+            return legalKnowledgeQuestions
+        case .coparenting:
+            return coparentingQuestions
+        case .financialStability:
+            return financialStabilityQuestions
+        case .resilience:
+            return resilienceQuestions
         }
     }
     
@@ -388,6 +420,228 @@ extension ParenthoodTestService {
                     "Siempre"
                 ],
                 category: "Presencia"
+            )
+        ]
+    }
+    
+    // MARK: - Legal Knowledge Questions
+    private var legalKnowledgeQuestions: [TestQuestion] {
+        [
+            TestQuestion(
+                text: "¿Qué tan familiarizado estás con tus derechos como padre en el proceso de divorcio?",
+                options: [
+                    "No sé nada",
+                    "Sé muy poco",
+                    "Tengo conocimiento básico",
+                    "Estoy bien informado",
+                    "Tengo conocimiento completo"
+                ],
+                category: "Derechos Legales"
+            ),
+            TestQuestion(
+                text: "¿Con qué frecuencia revisas los documentos legales relacionados con la custodia?",
+                options: [
+                    "Nunca",
+                    "Raramente",
+                    "A veces",
+                    "Frecuentemente",
+                    "Siempre"
+                ],
+                category: "Documentación"
+            ),
+            TestQuestion(
+                text: "¿Qué tan preparado te sientes para una audiencia judicial?",
+                options: [
+                    "Muy mal preparado",
+                    "Algo preparado",
+                    "Neutral",
+                    "Bastante preparado",
+                    "Muy bien preparado"
+                ],
+                category: "Preparación Judicial"
+            ),
+            TestQuestion(
+                text: "¿Conoces los procedimientos para modificar acuerdos de custodia?",
+                options: [
+                    "No sé nada",
+                    "Sé muy poco",
+                    "Tengo conocimiento básico",
+                    "Estoy bien informado",
+                    "Tengo conocimiento completo"
+                ],
+                category: "Procedimientos Legales"
+            )
+        ]
+    }
+    
+    // MARK: - Co-Parenting Questions
+    private var coparentingQuestions: [TestQuestion] {
+        [
+            TestQuestion(
+                text: "¿Qué tan efectiva es tu comunicación con la madre de tus hijos?",
+                options: [
+                    "Muy inefectiva",
+                    "Algo inefectiva",
+                    "Neutral",
+                    "Bastante efectiva",
+                    "Muy efectiva"
+                ],
+                category: "Comunicación"
+            ),
+            TestQuestion(
+                text: "¿Con qué frecuencia pueden llegar a acuerdos sobre decisiones importantes?",
+                options: [
+                    "Nunca",
+                    "Raramente",
+                    "A veces",
+                    "Frecuentemente",
+                    "Siempre"
+                ],
+                category: "Toma de Decisiones"
+            ),
+            TestQuestion(
+                text: "¿Qué tan bien manejas los desacuerdos sobre la crianza?",
+                options: [
+                    "Muy mal",
+                    "Algo mal",
+                    "Neutral",
+                    "Bastante bien",
+                    "Muy bien"
+                ],
+                category: "Resolución de Conflictos"
+            ),
+            TestQuestion(
+                text: "¿Qué tan consistente eres con las reglas entre ambos hogares?",
+                options: [
+                    "Muy inconsistente",
+                    "Algo inconsistente",
+                    "Neutral",
+                    "Bastante consistente",
+                    "Muy consistente"
+                ],
+                category: "Consistencia"
+            ),
+            TestQuestion(
+                text: "¿Qué tan bien proteges a tus hijos de conflictos entre padres?",
+                options: [
+                    "Muy mal",
+                    "Algo mal",
+                    "Neutral",
+                    "Bastante bien",
+                    "Muy bien"
+                ],
+                category: "Protección Infantil"
+            )
+        ]
+    }
+    
+    // MARK: - Financial Stability Questions
+    private var financialStabilityQuestions: [TestQuestion] {
+        [
+            TestQuestion(
+                text: "¿Qué tan preparado estás financieramente para el divorcio?",
+                options: [
+                    "Muy mal preparado",
+                    "Algo preparado",
+                    "Neutral",
+                    "Bastante preparado",
+                    "Muy bien preparado"
+                ],
+                category: "Preparación Financiera"
+            ),
+            TestQuestion(
+                text: "¿Tienes un plan financiero para cubrir los gastos de tus hijos?",
+                options: [
+                    "No tengo plan",
+                    "Tengo un plan básico",
+                    "Tengo un plan moderado",
+                    "Tengo un plan sólido",
+                    "Tengo un plan completo"
+                ],
+                category: "Planificación"
+            ),
+            TestQuestion(
+                text: "¿Qué tan bien manejas el presupuesto familiar post-divorcio?",
+                options: [
+                    "Muy mal",
+                    "Algo mal",
+                    "Neutral",
+                    "Bastante bien",
+                    "Muy bien"
+                ],
+                category: "Gestión Presupuestaria"
+            ),
+            TestQuestion(
+                text: "¿Tienes un fondo de emergencia para imprevistos?",
+                options: [
+                    "No tengo nada",
+                    "Tengo muy poco",
+                    "Tengo algo",
+                    "Tengo una cantidad adecuada",
+                    "Tengo una cantidad excelente"
+                ],
+                category: "Fondo de Emergencia"
+            )
+        ]
+    }
+    
+    // MARK: - Resilience Questions
+    private var resilienceQuestions: [TestQuestion] {
+        [
+            TestQuestion(
+                text: "¿Qué tan rápido te recuperas de los contratiempos?",
+                options: [
+                    "Muy lento",
+                    "Algo lento",
+                    "Neutral",
+                    "Bastante rápido",
+                    "Muy rápido"
+                ],
+                category: "Recuperación"
+            ),
+            TestQuestion(
+                text: "¿Qué tan bien te adaptas a los cambios inesperados?",
+                options: [
+                    "Muy mal",
+                    "Algo mal",
+                    "Neutral",
+                    "Bastante bien",
+                    "Muy bien"
+                ],
+                category: "Adaptabilidad"
+            ),
+            TestQuestion(
+                text: "¿Qué tan optimista eres sobre el futuro?",
+                options: [
+                    "Muy pesimista",
+                    "Algo pesimista",
+                    "Neutral",
+                    "Bastante optimista",
+                    "Muy optimista"
+                ],
+                category: "Optimismo"
+            ),
+            TestQuestion(
+                text: "¿Qué tan bien mantienes la calma en situaciones estresantes?",
+                options: [
+                    "Muy mal",
+                    "Algo mal",
+                    "Neutral",
+                    "Bastante bien",
+                    "Muy bien"
+                ],
+                category: "Control del Estrés"
+            ),
+            TestQuestion(
+                text: "¿Qué tan efectivo eres buscando ayuda cuando la necesitas?",
+                options: [
+                    "Muy inefectivo",
+                    "Algo inefectivo",
+                    "Neutral",
+                    "Bastante efectivo",
+                    "Muy efectivo"
+                ],
+                category: "Búsqueda de Ayuda"
             )
         ]
     }

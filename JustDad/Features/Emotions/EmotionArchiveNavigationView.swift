@@ -35,3 +35,4 @@ struct EmotionArchiveNavigationView: View {
     EmotionArchiveNavigationView()
         .environmentObject(NavigationRouter())
 }
+

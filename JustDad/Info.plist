@@ -27,5 +27,9 @@
 	<!-- Microphone Permission for Voice Notes -->
 	<key>NSMicrophoneUsageDescription</key>
 	<string>JustDad necesita acceso al micrófono para grabar notas de voz en tu journaling personal y reflexiones emocionales.</string>
+	
+	<!-- Speech Recognition Permission for Voice Reading -->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>JustDad usa el reconocimiento de voz para validar que leas correctamente las cartas de perdón durante la Terapia del Perdón Pránica, mejorando tu experiencia de sanación.</string>
 </dict>
 </plist>

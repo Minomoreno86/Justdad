@@ -29,6 +29,7 @@ struct EmotionsView: View {
     @State private var showingJournaling = false
     @State private var showingHabitsTracking = false
     @State private var showingGuidedExercises = false
+    @State private var showingLiberation = false
     @State private var selectedTab: Tab = .emotions
     
     var body: some View {
@@ -69,6 +70,9 @@ struct EmotionsView: View {
             }
                    .sheet(isPresented: $showingGuidedExercises) {
                        GuidedExercisesView()
+                   }
+                   .sheet(isPresented: $showingLiberation) {
+                       LiberationView()
                    }
         }
     }
@@ -160,6 +164,15 @@ struct EmotionsView: View {
                            color: .orange
                        ) {
                            showingJournaling = true
+                       }
+
+                       WellnessCard(
+                           title: "Liberación",
+                           subtitle: "Terapia del perdón y sanación",
+                           icon: "bird.fill",
+                           color: .yellow
+                       ) {
+                           showingLiberation = true
                        }
 
             }
