@@ -30,6 +30,7 @@ struct EmotionsView: View {
     @State private var showingHabitsTracking = false
     @State private var showingGuidedExercises = false
     @State private var showingLiberation = false
+    @State private var showingConflictWellness = false
     @State private var selectedTab: Tab = .emotions
     
     var body: some View {
@@ -73,6 +74,9 @@ struct EmotionsView: View {
                    }
                    .sheet(isPresented: $showingLiberation) {
                        LiberationView()
+                   }
+                   .sheet(isPresented: $showingConflictWellness) {
+                       ConflictWellnessView()
                    }
         }
     }
@@ -173,6 +177,15 @@ struct EmotionsView: View {
                            color: .yellow
                        ) {
                            showingLiberation = true
+                       }
+
+                       WellnessCard(
+                           title: "Gestión de Conflictos",
+                           subtitle: "Bienestar en la coparentalidad",
+                           icon: "shield.lefthalf.filled",
+                           color: .blue
+                       ) {
+                           showingConflictWellness = true
                        }
 
             }

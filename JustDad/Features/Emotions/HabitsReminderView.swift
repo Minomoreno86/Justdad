@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import UserNotifications
+import UIKit
 
 struct HabitsReminderView: View {
     @StateObject private var reminderService = HabitsReminderService.shared
@@ -89,7 +91,8 @@ struct HabitsReminderView: View {
                     await reminderService.requestNotificationPermission()
                 }
             }
-            .buttonStyle(HabitsPrimaryButtonStyle(color: .blue))
+            .buttonStyle(.borderedProminent)
+            .tint(.blue)
             
             Spacer()
         }
@@ -122,7 +125,8 @@ struct HabitsReminderView: View {
                     showingAddReminder = true
                 }
             }
-            .buttonStyle(HabitsPrimaryButtonStyle(color: .purple))
+            .buttonStyle(.borderedProminent)
+            .tint(.purple)
             
             Spacer()
         }
@@ -199,7 +203,7 @@ struct HabitsReminderView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemGray6))
+                .fill(Color.gray.opacity(0.1))
         )
     }
 }
@@ -244,7 +248,7 @@ struct HabitReminderSection: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
+                .fill(Color.white)
                 .shadow(color: habit.category.color.opacity(0.1), radius: 4, x: 0, y: 2)
         )
         .overlay(
@@ -306,7 +310,7 @@ struct ReminderRow: View {
         .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color(UIColor.systemGray6))
+                .fill(Color.gray.opacity(0.1))
         )
     }
 }

@@ -7,30 +7,39 @@
 
 import SwiftUI
 
-enum HabitTab: String, CaseIterable {
-    case overview = "overview"
-    case analytics = "analytics"
-    case reminders = "reminders"
-    case achievements = "achievements"
-    case goals = "goals"
+    enum HabitTab: String, CaseIterable {
+        case overview = "overview"
+        case identity = "identity"
+        case analytics = "analytics"
+        case reminders = "reminders"
+        case achievements = "achievements"
+        case goals = "goals"
+        case reflection = "reflection"
+        case stacking = "stacking"
     
     var title: String {
         switch self {
         case .overview: return "Resumen"
+        case .identity: return "Identidad"
         case .analytics: return "Analytics"
         case .reminders: return "Recordatorios"
         case .achievements: return "Logros"
         case .goals: return "Metas"
+        case .reflection: return "Reflexión"
+        case .stacking: return "Stacking"
         }
     }
     
     var icon: String {
         switch self {
         case .overview: return "house.fill"
+        case .identity: return "person.crop.circle.fill"
         case .analytics: return "chart.bar.fill"
         case .reminders: return "bell.fill"
         case .achievements: return "trophy.fill"
         case .goals: return "target"
+        case .reflection: return "lightbulb.fill"
+        case .stacking: return "square.stack.3d.up.fill"
         }
     }
 }
@@ -57,6 +66,9 @@ struct HabitsTrackingView: View {
                     overviewView
                         .tag(HabitTab.overview)
                     
+                    identityView
+                        .tag(HabitTab.identity)
+                    
                     analyticsView
                         .tag(HabitTab.analytics)
                     
@@ -68,6 +80,12 @@ struct HabitsTrackingView: View {
                     
                     goalsView
                         .tag(HabitTab.goals)
+                    
+                    reflectionView
+                        .tag(HabitTab.reflection)
+                    
+                    stackingView
+                        .tag(HabitTab.stacking)
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             }
@@ -116,31 +134,39 @@ struct HabitsTrackingView: View {
         .background(Color(UIColor.systemBackground))
     }
     
-    // MARK: - Simplified Tab Selector
+    // MARK: - Improved Tab Selector with Horizontal Scroll
     private var tabSelectorView: some View {
-        HStack(spacing: 0) {
-            ForEach(HabitTab.allCases, id: \.self) { tab in
-                Button(action: { selectedTab = tab }) {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 16))
-                        
-                        Text(tab.title)
-                            .font(.caption2)
-                            .fontWeight(.medium)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(HabitTab.allCases, id: \.self) { tab in
+                    Button(action: { 
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            selectedTab = tab
+                        }
+                    }) {
+                        VStack(spacing: 6) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 18, weight: .medium))
+                            
+                            Text(tab.title)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .lineLimit(1)
+                        }
+                        .foregroundColor(selectedTab == tab ? .white : .primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(selectedTab == tab ? Color.purple : Color.gray.opacity(0.1))
+                        )
+                        .scaleEffect(selectedTab == tab ? 1.05 : 1.0)
                     }
-                    .foregroundColor(selectedTab == tab ? .purple : .secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
+            .padding(.horizontal, 16)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.systemGray6))
-                .padding(.horizontal)
-        )
-        .padding(.horizontal)
         .padding(.bottom, 8)
     }
     
@@ -213,21 +239,21 @@ struct HabitsTrackingView: View {
     
     // MARK: - Goals Tab
     private var goalsView: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                Text("Metas y Objetivos")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Text("Próximamente: Sistema de metas personalizadas")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                
-                Spacer()
-            }
-            .padding()
-        }
+        HabitsGoalsView()
+    }
+    
+    // MARK: - Identity Tab
+    private var identityView: some View {
+        HabitsIdentityView()
+    }
+    
+    // MARK: - Reflection Tab
+    private var reflectionView: some View {
+        HabitsWeeklyReflectionView()
+    }
+    
+    private var stackingView: some View {
+        HabitsStackingView()
     }
     
     // MARK: - Quick Stats View
@@ -350,9 +376,9 @@ struct HabitsTrackingView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
-                ForEach(HabitCategory.allCases, id: \.self) { category in
+                ForEach(Array(HabitCategory.allCases), id: \.self) { category in
                     if let count = habitsService.insights.categoryBreakdown[category], count > 0 {
-                        CategoryCard(
+                        HabitsCategoryCard(
                             category: category,
                             count: count
                         )
@@ -405,7 +431,8 @@ struct HabitsTrackingView: View {
             Button("Agregar mi primer hábito") {
                 showingAddHabit = true
             }
-            .buttonStyle(HabitsPrimaryButtonStyle(color: .purple))
+            .buttonStyle(.borderedProminent)
+            .tint(.purple)
         }
         .padding()
     }
@@ -864,24 +891,6 @@ struct AddHabitView: View {
     }
 }
 
-// MARK: - Button Styles
-struct HabitsPrimaryButtonStyle: ButtonStyle {
-    let color: Color
-    
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.headline)
-            .foregroundColor(.white)
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(color)
-            )
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
 
 // MARK: - Supporting Views
 struct HabitStatCard: View {
@@ -919,30 +928,6 @@ struct HabitStatCard: View {
     }
 }
 
-struct InsightRow: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .frame(width: 20)
-            
-            Text(title)
-                .font(.body)
-            
-            Spacer()
-            
-            Text(value)
-                .font(.body)
-                .fontWeight(.semibold)
-                .foregroundColor(color)
-        }
-    }
-}
 
 struct WeeklyProgressRow: View {
     let habitName: String
@@ -968,7 +953,7 @@ struct WeeklyProgressRow: View {
     }
 }
 
-struct CategoryCard: View {
+struct HabitsCategoryCard: View {
     let category: HabitCategory
     let count: Int
     
