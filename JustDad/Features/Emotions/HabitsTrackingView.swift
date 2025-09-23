@@ -10,6 +10,7 @@ import SwiftUI
 enum HabitTab: String, CaseIterable {
     case overview = "overview"
     case analytics = "analytics"
+    case reminders = "reminders"
     case achievements = "achievements"
     case goals = "goals"
     
@@ -17,6 +18,7 @@ enum HabitTab: String, CaseIterable {
         switch self {
         case .overview: return "Resumen"
         case .analytics: return "Analytics"
+        case .reminders: return "Recordatorios"
         case .achievements: return "Logros"
         case .goals: return "Metas"
         }
@@ -26,6 +28,7 @@ enum HabitTab: String, CaseIterable {
         switch self {
         case .overview: return "house.fill"
         case .analytics: return "chart.bar.fill"
+        case .reminders: return "bell.fill"
         case .achievements: return "trophy.fill"
         case .goals: return "target"
         }
@@ -43,18 +46,11 @@ struct HabitsTrackingView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Tab Selector
-                Picker("Tab", selection: $selectedTab) {
-                    ForEach(HabitTab.allCases, id: \.self) { tab in
-                        HStack {
-                            Image(systemName: tab.icon)
-                            Text(tab.title)
-                        }
-                        .tag(tab)
-                    }
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding()
+                // Simplified Header
+                headerView
+                
+                // Tab Selector - Simplified
+                tabSelectorView
                 
                 // Content
                 TabView(selection: $selectedTab) {
@@ -64,6 +60,9 @@ struct HabitsTrackingView: View {
                     analyticsView
                         .tag(HabitTab.analytics)
                     
+                    remindersView
+                        .tag(HabitTab.reminders)
+                    
                     achievementsView
                         .tag(HabitTab.achievements)
                     
@@ -72,27 +71,77 @@ struct HabitsTrackingView: View {
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             }
-            .navigationTitle("Hábitos Atómicos")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cerrar") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Agregar") {
-                        showingAddHabit = true
-                    }
-                }
-            }
+            .navigationBarHidden(true)
             .sheet(isPresented: $showingAddHabit) {
                 AddHabitView { habit in
                     habitsService.addHabit(habit)
                 }
             }
         }
+    }
+    
+    // MARK: - Simplified Header
+    private var headerView: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                VStack(spacing: 4) {
+                    Text("Hábitos Atómicos")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Text("Construye la mejor versión de ti")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Button(action: { showingAddHabit = true }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.purple)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
+        }
+        .background(Color(UIColor.systemBackground))
+    }
+    
+    // MARK: - Simplified Tab Selector
+    private var tabSelectorView: some View {
+        HStack(spacing: 0) {
+            ForEach(HabitTab.allCases, id: \.self) { tab in
+                Button(action: { selectedTab = tab }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 16))
+                        
+                        Text(tab.title)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(selectedTab == tab ? .purple : .secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(UIColor.systemGray6))
+                .padding(.horizontal)
+        )
+        .padding(.horizontal)
+        .padding(.bottom, 8)
     }
     
     // MARK: - Overview Tab
@@ -137,6 +186,11 @@ struct HabitsTrackingView: View {
             }
             .padding()
         }
+    }
+    
+    // MARK: - Reminders Tab
+    private var remindersView: some View {
+        HabitsReminderView()
     }
     
     // MARK: - Achievements Tab
