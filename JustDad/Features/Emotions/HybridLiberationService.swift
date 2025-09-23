@@ -36,7 +36,7 @@ public class HybridLiberationService: ObservableObject {
             case .liberationLetter: return "Carta de Liberación"
             case .psychogenealogy: return "Psicogenealogía"
             case .liberationRitual: return "Ritual de Liberación"
-            case .energeticCords: return "Corte de Amarras"
+            case .energeticCords: return "Corte de Amarres o Brujería"
             case .pastLifeBonds: return "Vínculos del Pasado"
             }
         }
@@ -47,7 +47,7 @@ public class HybridLiberationService: ObservableObject {
             case .liberationLetter: return "Escribe para soltar emociones reprimidas y cerrar ciclos de forma terapéutica."
             case .psychogenealogy: return "Identifica y libera patrones familiares heredados con metodología profesional."
             case .liberationRitual: return "Realiza ceremonias simbólicas para la sanación profunda del alma."
-            case .energeticCords: return "Corta vínculos energéticos y emocionales no deseados con técnicas reales."
+            case .energeticCords: return "Libera amarres, maldiciones y trabajos de brujería con técnicas energéticas reales."
             case .pastLifeBonds: return "Libera conexiones kármicas y votos de otras vidas de forma segura."
             }
         }

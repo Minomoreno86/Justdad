@@ -45,6 +45,24 @@ struct LiberationTechniqueDetailView: View {
                                 .onDisappear {
                                     dismiss()
                                 }
+                        } else if technique == .liberationRitual {
+                            // Redirect to Liberation Ritual System
+                            RitualMainView()
+                                .onDisappear {
+                                    dismiss()
+                                }
+                        } else if technique == .pastLifeBonds {
+                            // Redirect to Karmic Bonds System
+                            KarmicMainView()
+                                .onDisappear {
+                                    dismiss()
+                                }
+                        } else if technique == .energeticCords {
+                            // Redirect to Amarres/Brujeria System
+                            AmarresMainView()
+                                .onDisappear {
+                                    dismiss()
+                                }
                 } else if isSessionActive {
                     sessionView
                 } else {
