@@ -40,7 +40,6 @@ struct MainTabView: View {
         case agenda = "agenda" 
         case finance = "finance"
         case emotions = "emotions"
-        case community = "community"
         
         var title: String {
             switch self {
@@ -48,7 +47,6 @@ struct MainTabView: View {
             case .agenda: return NSLocalizedString("tab_agenda", comment: "")
             case .finance: return NSLocalizedString("tab_finance", comment: "")
             case .emotions: return NSLocalizedString("tab_emotions", comment: "")
-            case .community: return NSLocalizedString("tab_community", comment: "")
             }
         }
         
@@ -58,7 +56,6 @@ struct MainTabView: View {
             case .agenda: return "calendar"
             case .finance: return "creditcard.fill"
             case .emotions: return "heart.fill"
-            case .community: return "person.3.fill"
             }
         }
     }
@@ -95,12 +92,6 @@ struct MainTabView: View {
                     }
                     .tag(Tab.emotions)
                 
-                CommunityView()
-                    .tabItem {
-                        Image(systemName: Tab.community.icon)
-                        Text(Tab.community.title)
-                    }
-                    .tag(Tab.community)
             }
             .accentColor(SuperDesign.Tokens.colors.primary) // Using SuperDesign primary color
             .background(SuperDesign.Tokens.colors.surfaceGradient) // Professional gradient background

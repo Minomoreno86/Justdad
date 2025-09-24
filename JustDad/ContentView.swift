@@ -45,12 +45,6 @@ struct ContentView: View {
                         }
                         .tag(MainTabView.Tab.emotions)
                     
-                    CommunityView()
-                        .tabItem {
-                            Image(systemName: MainTabView.Tab.community.icon)
-                            Text(MainTabView.Tab.community.title)
-                        }
-                        .tag(MainTabView.Tab.community)
                 }
             } else {
                 OnboardingView {

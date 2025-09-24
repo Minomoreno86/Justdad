@@ -7,6 +7,10 @@
 
 import SwiftUI
 import Combine
+import Foundation
+
+// Import required types from the project
+// These types are defined in other files in the project
 
 @MainActor
 class HomeViewModel: ObservableObject {
@@ -24,9 +28,9 @@ class HomeViewModel: ObservableObject {
     @Published var todaysOverview = TodaysOverview()
     
     // MARK: - Services
-    private let agendaService: AgendaServiceProtocol
-    private let financeService: FinanceServiceProtocol
-    private let emotionsService: EmotionsServiceProtocol
+    private let agendaRepository: AgendaRepositoryProtocol
+    private let persistenceService: PersistenceService
+    private let journalingService: IntelligentJournalingService
     private let userService: UserServiceProtocol
     
     // MARK: - Timers
@@ -36,15 +40,15 @@ class HomeViewModel: ObservableObject {
     // MARK: - Initialization
     init(
         selectedTab: Binding<MainTabView.Tab>,
-        agendaService: AgendaServiceProtocol = AgendaService.shared,
-        financeService: FinanceServiceProtocol = FinanceService.shared,
-        emotionsService: EmotionsServiceProtocol = EmotionsService.shared,
+        agendaRepository: AgendaRepositoryProtocol? = nil,
+        persistenceService: PersistenceService? = nil,
+        journalingService: IntelligentJournalingService? = nil,
         userService: UserServiceProtocol = UserService.shared
     ) {
         self.selectedTab = selectedTab
-        self.agendaService = agendaService
-        self.financeService = financeService
-        self.emotionsService = emotionsService
+        self.agendaRepository = agendaRepository ?? InMemoryAgendaRepository()
+        self.persistenceService = persistenceService ?? PersistenceService.shared
+        self.journalingService = journalingService ?? IntelligentJournalingService.shared
         self.userService = userService
         
         setupTimeTimer()
@@ -68,6 +72,12 @@ class HomeViewModel: ObservableObject {
         }
         
         isRefreshing = false
+    }
+    
+    func onAppear() {
+        Task {
+            await refreshData()
+        }
     }
     
     func navigateToAgenda() {
@@ -124,12 +134,19 @@ class HomeViewModel: ObservableObject {
     private func loadTodaysVisits() async {
         let today = Calendar.current.startOfDay(for: Date())
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
+        let dateRange = DateInterval(start: today, end: tomorrow)
         
-        todaysVisits = await agendaService.getVisits(from: today, to: tomorrow)
-        
-        // Update tasks based on visits
-        todaysTasks = todaysVisits.map { visit in
-            "\(visit.title) - \(visit.startDate.formatted(date: .omitted, time: .shortened))"
+        do {
+            todaysVisits = try await agendaRepository.getVisits(in: dateRange)
+            
+            // Update tasks based on visits
+            todaysTasks = todaysVisits.map { visit in
+                "\(visit.title) - \(visit.startDate.formatted(date: .omitted, time: .shortened))"
+            }
+        } catch {
+            print("❌ Error loading today's visits: \(error)")
+            todaysVisits = []
+            todaysTasks = []
         }
     }
     
@@ -137,103 +154,141 @@ class HomeViewModel: ObservableObject {
         let calendar = Calendar.current
         let now = Date()
         
-        // Load visits this week
-        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
-        let weekEnd = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? now
-        let thisWeekVisits = await agendaService.getVisits(from: weekStart, to: weekEnd)
-        
-        // Load monthly expenses
-        let monthStart = calendar.dateInterval(of: .month, for: now)?.start ?? now
-        let monthEnd = calendar.dateInterval(of: .month, for: now)?.end ?? now
-        let monthlyExpenses = await financeService.getExpenses(from: monthStart, to: monthEnd)
-        let totalMonthlyExpenses = monthlyExpenses.reduce(0) { $0 + $1.amount }
-        
-        // Load quality time (approximate based on visit durations)
-        let totalQualityTime = thisWeekVisits.reduce(0) { total, visit in
-            total + visit.endDate.timeIntervalSince(visit.startDate) / 3600 // Convert to hours
+        do {
+            // Load visits this week
+            let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+            let weekEnd = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? now
+            let weekRange = DateInterval(start: weekStart, end: weekEnd)
+            let thisWeekVisits = try await agendaRepository.getVisits(in: weekRange)
+            
+            // Load monthly expenses
+            let monthStart = calendar.dateInterval(of: .month, for: now)?.start ?? now
+            let monthEnd = calendar.dateInterval(of: .month, for: now)?.end ?? now
+            let monthlyExpenses = try persistenceService.fetch(FinancialEntry.self)
+            let filteredMonthlyExpenses = monthlyExpenses.filter { expense in
+                expense.date >= monthStart && expense.date <= monthEnd
+            }
+            let totalMonthlyExpenses = filteredMonthlyExpenses.reduce(0) { $0 + $1.amount }
+            
+            // Load quality time (approximate based on visit durations)
+            let totalQualityTime = thisWeekVisits.reduce(0) { total, visit in
+                total + visit.endDate.timeIntervalSince(visit.startDate) / 3600 // Convert to hours
+            }
+            
+            dashboardStats = DashboardStats(
+                visitsThisWeek: thisWeekVisits.count,
+                monthlyExpenses: Double(truncating: totalMonthlyExpenses as NSNumber),
+                qualityTimeHours: Int(totalQualityTime),
+                activitiesThisWeek: thisWeekVisits.filter { $0.visitType == .activity }.count
+            )
+        } catch {
+            print("❌ Error loading dashboard stats: \(error)")
+            dashboardStats = DashboardStats()
         }
-        
-        dashboardStats = DashboardStats(
-            visitsThisWeek: thisWeekVisits.count,
-            monthlyExpenses: Double(truncating: totalMonthlyExpenses as NSNumber),
-            qualityTimeHours: Int(totalQualityTime),
-            activitiesThisWeek: thisWeekVisits.filter { $0.visitType == .activity }.count
-        )
     }
     
     private func loadRecentActivities() async {
         // Load recent activities from all services
         var activities: [ActivityItem] = []
         
-        // Recent visits
-        let recentVisits = await agendaService.getRecentVisits(limit: 3)
-        activities.append(contentsOf: recentVisits.map { visit in
-            ActivityItem(
-                id: visit.id.uuidString,
-                type: .visit,
-                title: "Visita completada",
-                subtitle: visit.title,
-                timestamp: visit.endDate,
-                icon: "calendar.circle.fill",
-                color: .blue
-            )
-        })
-        
-        // Recent expenses
-        let recentExpenses = await financeService.getRecentExpenses(limit: 2)
-        activities.append(contentsOf: recentExpenses.map { expense in
-            ActivityItem(
-                id: expense.id.uuidString,
-                type: .expense,
-                title: "Gasto registrado",
-                subtitle: "\(expense.category.displayName) - $\(expense.amount)",
-                timestamp: expense.date,
-                icon: "dollarsign.circle.fill",
-                color: .green
-            )
-        })
-        
-        // Recent emotions
-        let recentEmotions = await emotionsService.getRecentEmotions(limit: 2)
-        activities.append(contentsOf: recentEmotions.map { emotion in
-            ActivityItem(
-                id: emotion.id.uuidString,
-                type: .emotion,
-                title: "Estado emocional actualizado",
-                subtitle: emotion.emotion.displayName,
-                timestamp: emotion.timestamp,
-                icon: "heart.circle.fill",
-                color: .pink
-            )
-        })
-        
-        // Sort by timestamp and take most recent
-        recentActivities = activities
-            .sorted { $0.timestamp > $1.timestamp }
-            .prefix(5)
-            .map { $0 }
+        do {
+            // Recent visits - get all visits and take the most recent
+            let allVisits = try await agendaRepository.getVisits(in: DateInterval(start: Date().addingTimeInterval(-30*24*60*60), end: Date()))
+            let recentVisits = Array(allVisits.sorted { $0.startDate > $1.startDate }.prefix(3))
+            activities.append(contentsOf: recentVisits.map { visit in
+                ActivityItem(
+                    id: visit.id.uuidString,
+                    type: .visit,
+                    title: "Visita programada",
+                    subtitle: visit.title,
+                    timestamp: visit.startDate,
+                    icon: "calendar.circle.fill",
+                    color: .blue
+                )
+            })
+            
+            // Recent expenses
+            let allExpenses = try persistenceService.fetch(FinancialEntry.self)
+            let recentExpenses = Array(allExpenses.sorted { $0.date > $1.date }.prefix(2))
+            activities.append(contentsOf: recentExpenses.map { expense in
+                ActivityItem(
+                    id: expense.id.uuidString,
+                    type: .expense,
+                    title: "Gasto registrado",
+                    subtitle: "\(expense.category.displayName) - $\(expense.amount)",
+                    timestamp: expense.date,
+                    icon: "dollarsign.circle.fill",
+                    color: .green
+                )
+            })
+            
+            // Recent emotions from journaling service
+            let recentEmotions = Array(journalingService.emotionEntries.prefix(2))
+            activities.append(contentsOf: recentEmotions.map { emotion in
+                ActivityItem(
+                    id: emotion.id.uuidString,
+                    type: .emotion,
+                    title: "Estado emocional actualizado",
+                    subtitle: emotion.emotion.displayName,
+                    timestamp: emotion.timestamp,
+                    icon: "heart.circle.fill",
+                    color: .pink
+                )
+            })
+            
+            // Recent journal entries
+            let recentJournalEntries = Array(journalingService.journalEntries.prefix(2))
+            activities.append(contentsOf: recentJournalEntries.map { entry in
+                ActivityItem(
+                    id: entry.id.uuidString,
+                    type: .journal,
+                    title: "Entrada de diario",
+                    subtitle: entry.prompt.text,
+                    timestamp: entry.date,
+                    icon: "book.circle.fill",
+                    color: .purple
+                )
+            })
+            
+            // Sort by timestamp and take most recent
+            recentActivities = activities
+                .sorted { $0.timestamp > $1.timestamp }
+                .prefix(5)
+                .map { $0 }
+        } catch {
+            print("❌ Error loading recent activities: \(error)")
+            recentActivities = []
+        }
     }
     
     private func loadTodaysOverview() async {
         let today = Calendar.current.startOfDay(for: Date())
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
         
-        // Count today's visits
-        let todaysVisitCount = todaysVisits.count
-        
-        // Get today's expenses
-        let todaysExpenses = await financeService.getExpenses(from: today, to: tomorrow)
-        let totalTodaysExpenses = todaysExpenses.reduce(0) { $0 + $1.amount }
-        
-        // Get current mood (most recent emotion entry)
-        let currentMood = await emotionsService.getCurrentMood()
-        
-        todaysOverview = TodaysOverview(
-            pendingTasks: todaysVisitCount,
-            nextAppointment: todaysVisits.first?.startDate,
-            currentMood: currentMood,
-            todaysExpenses: Double(truncating: totalTodaysExpenses as NSNumber)
-        )
+        do {
+            // Count today's visits
+            let todaysVisitCount = todaysVisits.count
+            
+            // Get today's expenses
+            let allExpenses = try persistenceService.fetch(FinancialEntry.self)
+            let todaysExpenses = allExpenses.filter { expense in
+                expense.date >= today && expense.date < tomorrow
+            }
+            let totalTodaysExpenses = todaysExpenses.reduce(0) { $0 + $1.amount }
+            
+            // Get current mood (most recent emotion entry)
+            let currentMood = journalingService.emotionEntries.first?.emotion
+            
+            todaysOverview = TodaysOverview(
+                pendingTasks: todaysVisitCount,
+                nextAppointment: todaysVisits.first?.startDate,
+                currentMood: currentMood,
+                todaysExpenses: Double(truncating: totalTodaysExpenses as NSNumber)
+            )
+        } catch {
+            print("❌ Error loading today's overview: \(error)")
+            todaysOverview = TodaysOverview()
+        }
     }
     
     private func loadUserProfile() async {
@@ -334,68 +389,11 @@ enum ActivityType {
 }
 
 // MARK: - Service Protocols
-protocol AgendaServiceProtocol {
-    func getVisits(from: Date, to: Date) async -> [AgendaVisit]
-    func getRecentVisits(limit: Int) async -> [AgendaVisit]
-}
-
-protocol FinanceServiceProtocol {
-    func getExpenses(from: Date, to: Date) async -> [Expense]
-    func getRecentExpenses(limit: Int) async -> [Expense]
-}
-
-protocol EmotionsServiceProtocol {
-    func getRecentEmotions(limit: Int) async -> [EmotionEntry]
-    func getCurrentMood() async -> EmotionalState?
-}
-
 protocol UserServiceProtocol {
     func getCurrentUsername() async -> String?
 }
 
-// MARK: - Mock Services (TODO: Replace with real implementations)
-class AgendaService: AgendaServiceProtocol {
-    static let shared = AgendaService()
-    
-    func getVisits(from: Date, to: Date) async -> [AgendaVisit] {
-        // TODO: Implement real data loading
-        return []
-    }
-    
-    func getRecentVisits(limit: Int) async -> [AgendaVisit] {
-        // TODO: Implement real data loading
-        return []
-    }
-}
-
-class FinanceService: FinanceServiceProtocol {
-    static let shared = FinanceService()
-    
-    func getExpenses(from: Date, to: Date) async -> [Expense] {
-        // TODO: Implement real data loading
-        return []
-    }
-    
-    func getRecentExpenses(limit: Int) async -> [Expense] {
-        // TODO: Implement real data loading
-        return []
-    }
-}
-
-class EmotionsService: EmotionsServiceProtocol {
-    static let shared = EmotionsService()
-    
-    func getRecentEmotions(limit: Int) async -> [EmotionEntry] {
-        // TODO: Implement real data loading
-        return []
-    }
-    
-    func getCurrentMood() async -> EmotionalState? {
-        // TODO: Implement real data loading
-        return nil
-    }
-}
-
+// MARK: - User Service Implementation
 class UserService: UserServiceProtocol {
     static let shared = UserService()
     

@@ -446,14 +446,30 @@ struct ProfessionalReportsView: View {
     }
     
     private func loadMockData() {
-        // Load mock data for preview
-        mockExpenses = [
-            ReportMockExpense(title: "Supermercado", amount: 150.00, category: "Alimentación", date: Date()),
-            ReportMockExpense(title: "Gasolina", amount: 80.00, category: "Transporte", date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()),
-            ReportMockExpense(title: "Renta", amount: 1200.00, category: "Vivienda", date: Calendar.current.date(byAdding: .day, value: -2, to: Date()) ?? Date())
-        ]
-        
-        totalAmount = mockExpenses.reduce(0) { $0 + $1.amount }
+        // Load real data from persistence service
+        Task {
+            do {
+                let persistenceService = PersistenceService.shared
+                let realExpenses = try await persistenceService.fetch(FinancialEntry.self)
+                
+                await MainActor.run {
+                    mockExpenses = realExpenses.map { entry in
+                        ReportMockExpense(
+                            title: entry.title,
+                            amount: entry.amount,
+                            category: entry.category.rawValue,
+                            date: entry.date
+                        )
+                    }
+                    totalAmount = mockExpenses.reduce(0) { $0 + $1.amount }
+                }
+            } catch {
+                await MainActor.run {
+                    mockExpenses = []
+                    totalAmount = 0
+                }
+            }
+        }
     }
     
     private func formatCurrency(_ amount: Decimal) -> String {

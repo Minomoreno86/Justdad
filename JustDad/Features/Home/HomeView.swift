@@ -68,6 +68,9 @@ struct HomeView: View {
                 .refreshable {
                     await viewModel.refreshData()
                 }
+                .onAppear {
+                    viewModel.onAppear()
+                }
             }
         }
     }

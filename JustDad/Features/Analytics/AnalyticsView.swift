@@ -430,52 +430,46 @@ struct AnalyticsView: View {
     private func loadAnalytics() async {
         isLoading = true
         
-        // For now, use sample data until proper data integration
-        let sampleVisits = createSampleVisits()
-        
-        await MainActor.run {
-            visits = sampleVisits
-            visitAnalytics = analyticsService.getVisitAnalytics(visits: sampleVisits)
-            dashboardMetrics = analyticsService.getDashboardMetrics(visits: sampleVisits)
-            isLoading = false
+        // Load real data from agenda repository
+        do {
+            let agendaRepository = InMemoryAgendaRepository()
+            let dateRange = DateInterval(start: Calendar.current.date(byAdding: .month, value: -6, to: Date()) ?? Date(), 
+                                       end: Date())
+            let realVisits = try await agendaRepository.getVisits(in: dateRange)
+            
+            await MainActor.run {
+                visits = realVisits
+                visitAnalytics = analyticsService.getVisitAnalytics(visits: realVisits)
+                dashboardMetrics = analyticsService.getDashboardMetrics(visits: realVisits)
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                visits = []
+                visitAnalytics = VisitAnalytics(
+                    totalVisits: 0,
+                    thisMonthVisits: 0,
+                    lastMonthVisits: 0,
+                    averageDurationMinutes: 0,
+                    visitTypeDistribution: [:],
+                    monthlyTrends: [],
+                    topLocations: [],
+                    completionRate: 0.0,
+                    upcomingVisits: 0
+                )
+                dashboardMetrics = DashboardMetrics(
+                    todayVisits: 0,
+                    thisWeekVisits: 0,
+                    nextVisit: nil,
+                    currentStreak: 0,
+                    totalTime: 0,
+                    averagePerWeek: 0.0
+                )
+                isLoading = false
+            }
         }
     }
     
-    private func createSampleVisits() -> [AgendaVisit] {
-        // Create sample data for demonstration
-        let calendar = Calendar.current
-        let now = Date()
-        
-        return [
-            AgendaVisit(
-                id: UUID(),
-                title: "Visita al parque",
-                startDate: calendar.date(byAdding: .day, value: -1, to: now) ?? now,
-                endDate: calendar.date(byAdding: .hour, value: 2, to: calendar.date(byAdding: .day, value: -1, to: now) ?? now) ?? now,
-                location: "Parque Central",
-                notes: "Tiempo de calidad con los niños",
-                visitType: .activity
-            ),
-            AgendaVisit(
-                id: UUID(),
-                title: "Cena familiar",
-                startDate: calendar.date(byAdding: .day, value: -3, to: now) ?? now,
-                endDate: calendar.date(byAdding: .hour, value: 1, to: calendar.date(byAdding: .day, value: -3, to: now) ?? now) ?? now,
-                location: "Casa",
-                notes: "Cena especial en casa",
-                visitType: .dinner
-            ),
-            AgendaVisit(
-                id: UUID(),
-                title: "Actividad escolar",
-                startDate: calendar.date(byAdding: .weekOfYear, value: -1, to: now) ?? now,
-                endDate: calendar.date(byAdding: .hour, value: 3, to: calendar.date(byAdding: .weekOfYear, value: -1, to: now) ?? now) ?? now,
-                location: "Escuela Primaria",
-                notes: "Evento escolar importante",
-                visitType: .school
-            )
-        ]
-    }
     
     private func generateFullReport() {
         showingFullReport = true

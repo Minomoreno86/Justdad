@@ -20,7 +20,6 @@ class InMemoryAgendaRepository: ObservableObject, @preconcurrency AgendaReposito
     
     init() {
         loadStoredVisits()
-        generateMockVisits()
     }
     
     // MARK: - Repository Protocol Implementation
@@ -104,56 +103,4 @@ class InMemoryAgendaRepository: ObservableObject, @preconcurrency AgendaReposito
         }
     }
     
-    // MARK: - Mock Data Generation
-    
-    private func generateMockVisits() {
-        guard visits.isEmpty else { return }
-        
-        let calendar = Calendar.current
-        let today = Date()
-        
-        let mockVisits = [
-            AgendaVisit(
-                title: NSLocalizedString("mock.visit.weekend.title", comment: "Weekend with kids"),
-                startDate: calendar.date(byAdding: .day, value: 2, to: today) ?? today,
-                endDate: calendar.date(byAdding: .hour, value: 8, to: calendar.date(byAdding: .day, value: 2, to: today) ?? today) ?? today,
-                location: NSLocalizedString("mock.visit.weekend.location", comment: "My apartment"),
-                notes: NSLocalizedString("mock.visit.weekend.notes", comment: "Plan activities and prepare lunch"),
-                reminderMinutes: 60,
-                visitType: .weekend
-            ),
-            AgendaVisit(
-                title: NSLocalizedString("mock.visit.dinner.title", comment: "Weekday dinner"),
-                startDate: calendar.date(byAdding: .day, value: 5, to: today) ?? today,
-                endDate: calendar.date(byAdding: .hour, value: 2, to: calendar.date(byAdding: .day, value: 5, to: today) ?? today) ?? today,
-                location: NSLocalizedString("mock.visit.dinner.location", comment: "Downtown restaurant"),
-                notes: NSLocalizedString("mock.visit.dinner.notes", comment: "Try the new kids menu"),
-                reminderMinutes: 30,
-                visitType: .school
-            ),
-            AgendaVisit(
-                title: NSLocalizedString("mock.visit.event.title", comment: "School event"),
-                startDate: calendar.date(byAdding: .day, value: 8, to: today) ?? today,
-                endDate: calendar.date(byAdding: .hour, value: 3, to: calendar.date(byAdding: .day, value: 8, to: today) ?? today) ?? today,
-                location: NSLocalizedString("mock.visit.event.location", comment: "School auditorium"),
-                notes: NSLocalizedString("mock.visit.event.notes", comment: "Annual school presentation"),
-                reminderMinutes: 120,
-                visitType: .general
-            ),
-            AgendaVisit(
-                title: NSLocalizedString("mock.visit.recurring.title", comment: "Weekly pickup"),
-                startDate: calendar.date(byAdding: .day, value: 1, to: today) ?? today,
-                endDate: calendar.date(byAdding: .hour, value: 1, to: calendar.date(byAdding: .day, value: 1, to: today) ?? today) ?? today,
-                location: NSLocalizedString("mock.visit.recurring.location", comment: "School"),
-                notes: NSLocalizedString("mock.visit.recurring.notes", comment: "Regular school pickup"),
-                reminderMinutes: 15,
-                isRecurring: true,
-                recurrenceRule: .weekly,
-                visitType: .general
-            )
-        ]
-        
-        visits = mockVisits
-        saveVisits()
-    }
 }
