@@ -40,9 +40,7 @@ struct MainTabView: View {
         case agenda = "agenda" 
         case finance = "finance"
         case emotions = "emotions"
-        case journal = "journal"
         case community = "community"
-        case analytics = "analytics"
         
         var title: String {
             switch self {
@@ -50,9 +48,7 @@ struct MainTabView: View {
             case .agenda: return NSLocalizedString("tab_agenda", comment: "")
             case .finance: return NSLocalizedString("tab_finance", comment: "")
             case .emotions: return NSLocalizedString("tab_emotions", comment: "")
-            case .journal: return "Journal"
             case .community: return NSLocalizedString("tab_community", comment: "")
-            case .analytics: return NSLocalizedString("tab_analytics", comment: "")
             }
         }
         
@@ -62,9 +58,7 @@ struct MainTabView: View {
             case .agenda: return "calendar"
             case .finance: return "creditcard.fill"
             case .emotions: return "heart.fill"
-            case .journal: return "book.pages.fill"
             case .community: return "person.3.fill"
-            case .analytics: return "chart.bar.fill"
             }
         }
     }
@@ -72,7 +66,7 @@ struct MainTabView: View {
     var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                HomeView()
+                HomeView(selectedTab: $selectedTab)
                     .tabItem {
                         Image(systemName: Tab.home.icon)
                         Text(Tab.home.title)
@@ -101,33 +95,12 @@ struct MainTabView: View {
                     }
                     .tag(Tab.emotions)
                 
-                UnifiedJournalNavigationView()
-                    .tabItem {
-                        Image(systemName: Tab.journal.icon)
-                        Text(Tab.journal.title)
-                    }
-                    .tag(Tab.journal)
-                
-                EmotionArchiveNavigationView()
-                    .tabItem {
-                        Image(systemName: Tab.emotions.icon)
-                        Text(Tab.emotions.title)
-                    }
-                    .tag(Tab.emotions)
-                
                 CommunityView()
                     .tabItem {
                         Image(systemName: Tab.community.icon)
                         Text(Tab.community.title)
                     }
                     .tag(Tab.community)
-                
-                AnalyticsView()
-                    .tabItem {
-                        Image(systemName: Tab.analytics.icon)
-                        Text(Tab.analytics.title)
-                    }
-                    .tag(Tab.analytics)
             }
             .accentColor(SuperDesign.Tokens.colors.primary) // Using SuperDesign primary color
             .background(SuperDesign.Tokens.colors.surfaceGradient) // Professional gradient background

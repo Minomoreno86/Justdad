@@ -11,17 +11,18 @@ import UIKit
 #endif
 
 struct HomeView: View {
-    // MARK: - State
-    @State private var currentDate = Date()
-    @State private var username = "Jorge" // Personalizable
-    @State private var currentTime = Date()
-    @State private var isRefreshing = false
+    // MARK: - Navigation
+    @Binding var selectedTab: MainTabView.Tab
     
-    // Mock data - En producción vendría de ViewModels
-    private let todaysTasks = ["Llevar a Emma al dentista", "Comprar útiles escolares", "Revisar tareas"]
+    // MARK: - ViewModel
+    @StateObject private var viewModel: HomeViewModel
     
-    // Timer for real-time updates
-    private let timer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
+    @Environment(\.dismiss) private var dismiss
+    
+    init(selectedTab: Binding<MainTabView.Tab>) {
+        self._selectedTab = selectedTab
+        self._viewModel = StateObject(wrappedValue: HomeViewModel(selectedTab: selectedTab))
+    }
     
     // MARK: - Body
     var body: some View {
@@ -65,11 +66,8 @@ struct HomeView: View {
                     .padding(.bottom, 100) // Extra padding for tab bar
                 }
                 .refreshable {
-                    await refreshData()
+                    await viewModel.refreshData()
                 }
-            }
-            .onReceive(timer) { _ in
-                currentTime = Date()
             }
         }
     }
@@ -79,17 +77,17 @@ struct HomeView: View {
         VStack(spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(greetingMessage)
+                    Text(viewModel.greetingMessage)
                         .font(.title2)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
                     
-                    Text(username)
+                    Text(viewModel.username)
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
                     
-                    Text(currentTime.formatted(date: .complete, time: .omitted))
+                    Text(viewModel.currentTime.formatted(date: .complete, time: .omitted))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -118,7 +116,7 @@ struct HomeView: View {
                         )
                         .frame(width: 44, height: 44)
                         .overlay(
-                            Text(String(username.prefix(1)).uppercased())
+                            Text(String(viewModel.username.prefix(1)).uppercased())
                                 .font(.headline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
@@ -140,7 +138,7 @@ struct HomeView: View {
                 
                 Spacer()
                 
-                Text(currentTime.formatted(date: .omitted, time: .shortened))
+                Text(viewModel.currentTime.formatted(date: .omitted, time: .shortened))
                     .font(.caption)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -157,7 +155,7 @@ struct HomeView: View {
                         .foregroundColor(Color.orange)
                     
                     VStack(spacing: 2) {
-                        Text("\(todaysTasks.count)")
+                        Text("\(viewModel.todaysOverview.pendingTasks)")
                             .font(.title2)
                             .fontWeight(.bold)
                         
@@ -183,16 +181,17 @@ struct HomeView: View {
                         .foregroundColor(Color.blue)
                     
                     VStack(spacing: 2) {
-                        Text("2h")
+                        Text(viewModel.nextAppointmentText)
                             .font(.title2)
                             .fontWeight(.bold)
+                            .lineLimit(1)
                         
                         Text("Próxima")
                             .font(.caption2)
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)
                         
-                        Text("cita médica")
+                        Text("cita")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
@@ -209,16 +208,17 @@ struct HomeView: View {
                         .foregroundColor(Color.pink)
                     
                     VStack(spacing: 2) {
-                        Text("😊")
+                        Text(viewModel.todaysOverview.currentMood?.displayName ?? "😊")
                             .font(.title2)
                             .fontWeight(.bold)
+                            .lineLimit(1)
                         
                         Text("Ánimo")
                             .font(.caption2)
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)
                         
-                        Text("excelente")
+                        Text("actual")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
@@ -252,7 +252,7 @@ struct HomeView: View {
                         Spacer()
                     }
                     
-                    Text("5")
+                    Text("\(viewModel.dashboardStats.visitsThisWeek)")
                         .font(.title2.weight(.bold))
                         .foregroundColor(.primary)
                     
@@ -260,7 +260,7 @@ struct HomeView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     
-                    Text("+2 más que la semana pasada")
+                    Text("Total de visitas")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -276,7 +276,7 @@ struct HomeView: View {
                         Spacer()
                     }
                     
-                    Text("$1,240")
+                    Text("$\(viewModel.dashboardStats.monthlyExpenses, format: .number.precision(.fractionLength(0)))")
                         .font(.title2.weight(.bold))
                         .foregroundColor(.primary)
                     
@@ -284,7 +284,7 @@ struct HomeView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     
-                    Text("-15% menos que el mes pasado")
+                    Text("Total mensual")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -300,7 +300,7 @@ struct HomeView: View {
                         Spacer()
                     }
                     
-                    Text("32h")
+                    Text("\(viewModel.dashboardStats.qualityTimeHours)h")
                         .font(.title2.weight(.bold))
                         .foregroundColor(.primary)
                     
@@ -308,7 +308,7 @@ struct HomeView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     
-                    Text("+8h más que la semana pasada")
+                    Text("Esta semana")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -324,7 +324,7 @@ struct HomeView: View {
                         Spacer()
                     }
                     
-                    Text("12")
+                    Text("\(viewModel.dashboardStats.activitiesThisWeek)")
                         .font(.title2.weight(.bold))
                         .foregroundColor(.primary)
                     
@@ -332,7 +332,7 @@ struct HomeView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     
-                    Text("+3 más que la semana pasada")
+                    Text("Esta semana")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -356,7 +356,7 @@ struct HomeView: View {
                 GridItem(.flexible())
             ], spacing: 12) {
                 
-                Button(action: {}) {
+                Button(action: { viewModel.addNewVisit() }) {
                     VStack(spacing: 12) {
                         Circle()
                             .fill(LinearGradient(colors: [Color.blue, Color.cyan], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -384,7 +384,7 @@ struct HomeView: View {
                     .cornerRadius(16)
                 }
                 
-                Button(action: {}) {
+                Button(action: { viewModel.navigateToAgenda() }) {
                     VStack(spacing: 12) {
                         Circle()
                             .fill(LinearGradient(colors: [Color.purple, Color.pink], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -412,7 +412,7 @@ struct HomeView: View {
                     .cornerRadius(16)
                 }
                 
-                Button(action: {}) {
+                Button(action: { viewModel.writeJournalEntry() }) {
                     VStack(spacing: 12) {
                         Circle()
                             .fill(LinearGradient(colors: [Color.orange, Color.red], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -440,7 +440,7 @@ struct HomeView: View {
                     .cornerRadius(16)
                 }
                 
-                Button(action: {}) {
+                Button(action: { viewModel.openSOS() }) {
                     VStack(spacing: 12) {
                         Circle()
                             .fill(LinearGradient(colors: [Color.red, Color.pink], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -487,27 +487,57 @@ struct HomeView: View {
                     .foregroundColor(.blue)
             }
             
-            VStack(spacing: 16) {
-                Image(systemName: "calendar.badge.plus")
-                    .font(.system(size: 40))
-                    .foregroundColor(.secondary)
-                
-                VStack(spacing: 8) {
-                    Text("Sin citas hoy")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                    
-                    Text("¡Perfecto día para relajarse!")
-                        .font(.subheadline)
+            if viewModel.todaysVisits.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.system(size: 40))
                         .foregroundColor(.secondary)
+                    
+                    VStack(spacing: 8) {
+                        Text("Sin citas hoy")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        
+                        Text("¡Perfecto día para relajarse!")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
                 }
+                .padding(.vertical, 40)
+                .padding(.horizontal, 20)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(16)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.todaysVisits.prefix(3)) { visit in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(visit.title)
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                
+                                Text(visit.startDate.formatted(date: .omitted, time: .shortened))
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "calendar.circle.fill")
+                                .foregroundColor(.blue)
+                        }
+                        .padding()
+                        .background(Color.gray.opacity(0.05))
+                        .cornerRadius(8)
+                    }
+                }
+                .padding(.vertical, 40)
+                .padding(.horizontal, 20)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(16)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 40)
-            .padding(.horizontal, 20)
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(16)
         }
     }
     
@@ -520,128 +550,68 @@ struct HomeView: View {
                 .foregroundColor(.primary)
             
             VStack(spacing: 12) {
-                // Activity 1
-                HStack(spacing: 12) {
-                    Circle()
-                        .fill(LinearGradient(
-                            gradient: Gradient(colors: [.green, .mint]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ))
-                        .frame(width: 44, height: 44)
-                        .overlay(
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.white)
-                                .font(.system(size: 18, weight: .semibold))
-                        )
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Visita médica completada")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                        
-                        Text("Dr. García - Pediatría")
-                            .font(.subheadline)
+                if viewModel.recentActivities.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "clock.badge")
+                            .font(.system(size: 40))
                             .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    Text("Hace 2 horas")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.green.opacity(0.2))
-                        .foregroundColor(.green)
-                        .cornerRadius(8)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.gray.opacity(0.05))
-                .cornerRadius(12)
-                
-                // Activity 2
-                HStack(spacing: 12) {
-                    Circle()
-                        .fill(LinearGradient(
-                            gradient: Gradient(colors: [.orange, .yellow]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ))
-                        .frame(width: 44, height: 44)
-                        .overlay(
-                            Image(systemName: "dollarsign.circle.fill")
-                                .foregroundColor(.white)
-                                .font(.system(size: 18, weight: .semibold))
-                        )
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Gasto registrado")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
                         
-                        Text("Farmacia - $45.00")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        VStack(spacing: 8) {
+                            Text("Sin actividad reciente")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                            
+                            Text("Las actividades aparecerán aquí")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
                     }
-                    
-                    Spacer()
-                    
-                    Text("Hace 4 horas")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.orange.opacity(0.2))
-                        .foregroundColor(.orange)
-                        .cornerRadius(8)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.gray.opacity(0.05))
-                .cornerRadius(12)
-                
-                // Activity 3
-                HStack(spacing: 12) {
-                    Circle()
-                        .fill(LinearGradient(
-                            gradient: Gradient(colors: [.pink, .purple]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ))
-                        .frame(width: 44, height: 44)
-                        .overlay(
-                            Image(systemName: "heart.circle.fill")
-                                .foregroundColor(.white)
-                                .font(.system(size: 18, weight: .semibold))
-                        )
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Estado de ánimo actualizado")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                        
-                        Text("Emma se siente feliz")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                } else {
+                    ForEach(viewModel.recentActivities) { activity in
+                        HStack(spacing: 12) {
+                            Circle()
+                                .fill(LinearGradient(
+                                    gradient: Gradient(colors: [activity.color, activity.color.opacity(0.7)]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ))
+                                .frame(width: 44, height: 44)
+                                .overlay(
+                                    Image(systemName: activity.icon)
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 18, weight: .semibold))
+                                )
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(activity.title)
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                
+                                Text(activity.subtitle)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Text(timeAgoString(from: activity.timestamp))
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(activity.color.opacity(0.2))
+                                .foregroundColor(activity.color)
+                                .cornerRadius(8)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Color.gray.opacity(0.05))
+                        .cornerRadius(12)
                     }
-                    
-                    Spacer()
-                    
-                    Text("Ayer")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.pink.opacity(0.2))
-                        .foregroundColor(.pink)
-                        .cornerRadius(8)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.gray.opacity(0.05))
-                .cornerRadius(12)
             }
         }
     }
@@ -721,26 +691,26 @@ struct HomeView: View {
         }
     }
     
-    // MARK: - Helper Properties
-    private var greetingMessage: String {
-        let hour = Calendar.current.component(.hour, from: currentTime)
-        switch hour {
-        case 5..<12: return "Buenos días"
-        case 12..<18: return "Buenas tardes"
-        default: return "Buenas noches"
+    // MARK: - Helper Functions
+    private func timeAgoString(from date: Date) -> String {
+        let now = Date()
+        let timeInterval = now.timeIntervalSince(date)
+        
+        if timeInterval < 60 {
+            return "Hace un momento"
+        } else if timeInterval < 3600 {
+            let minutes = Int(timeInterval / 60)
+            return "Hace \(minutes) min"
+        } else if timeInterval < 86400 {
+            let hours = Int(timeInterval / 3600)
+            return "Hace \(hours)h"
+        } else {
+            let days = Int(timeInterval / 86400)
+            return days == 1 ? "Ayer" : "Hace \(days) días"
         }
-    }
-    
-    // MARK: - Actions
-    private func refreshData() async {
-        isRefreshing = true
-        // Simulate network call
-        try? await Task.sleep(nanoseconds: 1_000_000_000)
-        currentTime = Date()
-        isRefreshing = false
     }
 }
 
 #Preview {
-    HomeView()
+    HomeView(selectedTab: .constant(.home))
 }

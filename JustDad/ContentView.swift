@@ -10,95 +10,47 @@ import SwiftData
 
 struct ContentView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @State private var selectedTab: Tab = .home
+    @State private var selectedTab: MainTabView.Tab = .home
     @State private var showingSOSSheet = false
-    
-    enum Tab: String, CaseIterable {
-        case home = "home"
-        case agenda = "agenda" 
-        case finance = "finance"
-        case emotions = "emotions"
-        case journal = "journal"
-        case community = "community"
-        case analytics = "analytics"
-        
-        var title: String {
-            switch self {
-            case .home: return NSLocalizedString("tab_home", comment: "")
-            case .agenda: return NSLocalizedString("tab_agenda", comment: "")
-            case .finance: return NSLocalizedString("tab_finance", comment: "")
-            case .emotions: return NSLocalizedString("tab_emotions", comment: "")
-            case .journal: return "Journal"
-            case .community: return NSLocalizedString("tab_community", comment: "")
-            case .analytics: return NSLocalizedString("tab_analytics", comment: "")
-            }
-        }
-        
-        var icon: String {
-            switch self {
-            case .home: return "house.fill"
-            case .agenda: return "calendar"
-            case .finance: return "creditcard.fill"
-            case .emotions: return "heart.fill"
-            case .journal: return "book.pages"
-            case .community: return "person.3.fill"
-            case .analytics: return "chart.bar.fill"
-            }
-        }
-    }
     
     var body: some View {
         ZStack {
             if hasCompletedOnboarding {
                 TabView(selection: $selectedTab) {
-                    HomeView()
+                    HomeView(selectedTab: $selectedTab)
                         .tabItem {
-                            Image(systemName: Tab.home.icon)
-                            Text(Tab.home.title)
+                            Image(systemName: MainTabView.Tab.home.icon)
+                            Text(MainTabView.Tab.home.title)
                         }
-                        .tag(Tab.home)
+                        .tag(MainTabView.Tab.home)
                     
                     AgendaView(repo: InMemoryAgendaRepository())
                         .tabItem {
-                            Image(systemName: Tab.agenda.icon)
-                            Text(Tab.agenda.title)
+                            Image(systemName: MainTabView.Tab.agenda.icon)
+                            Text(MainTabView.Tab.agenda.title)
                         }
-                        .tag(Tab.agenda)
+                        .tag(MainTabView.Tab.agenda)
                     
                     FinanceView()
                         .tabItem {
-                            Image(systemName: Tab.finance.icon)
-                            Text(Tab.finance.title)
+                            Image(systemName: MainTabView.Tab.finance.icon)
+                            Text(MainTabView.Tab.finance.title)
                         }
-                        .tag(Tab.finance)
+                        .tag(MainTabView.Tab.finance)
                     
                     EmotionsView()
                         .tabItem {
-                            Image(systemName: Tab.emotions.icon)
-                            Text(Tab.emotions.title)
+                            Image(systemName: MainTabView.Tab.emotions.icon)
+                            Text(MainTabView.Tab.emotions.title)
                         }
-                        .tag(Tab.emotions)
-                    
-                    UnifiedJournalNavigationView()
-                        .tabItem {
-                            Image(systemName: Tab.journal.icon)
-                            Text(Tab.journal.title)
-                        }
-                        .tag(Tab.journal)
+                        .tag(MainTabView.Tab.emotions)
                     
                     CommunityView()
                         .tabItem {
-                            Image(systemName: Tab.community.icon)
-                            Text(Tab.community.title)
+                            Image(systemName: MainTabView.Tab.community.icon)
+                            Text(MainTabView.Tab.community.title)
                         }
-                        .tag(Tab.community)
-                    
-                    AnalyticsView()
-                        .tabItem {
-                            Image(systemName: Tab.analytics.icon)
-                            Text(Tab.analytics.title)
-                        }
-                        .tag(Tab.analytics)
+                        .tag(MainTabView.Tab.community)
                 }
             } else {
                 OnboardingView {
