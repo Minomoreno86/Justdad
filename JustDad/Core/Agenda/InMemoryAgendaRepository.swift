@@ -1,22 +1,19 @@
 //
 //  InMemoryAgendaRepository.swift
-//  JustDad - In-memory Agenda Repository
+//  JustDad - SwiftData Agenda Repository
 //
-//  Offline-first agenda repository with mock data persistence
+//  Offline-first agenda repository with SwiftData persistence
 //
 
 import Foundation
-
-// Import core agenda types
-// AgendaTypes should be imported via the module system
+import SwiftData
 
 @MainActor
 class InMemoryAgendaRepository: ObservableObject, @preconcurrency AgendaRepositoryProtocol {
     @Published private var visits: [AgendaVisit] = []
     @Published var permissionStatus: AgendaPermissionStatus = .notDetermined
     
-    private let userDefaults = UserDefaults.standard
-    private let visitsKey = "stored_visits"
+    private let persistenceService = PersistenceService.shared
     
     init() {
         loadStoredVisits()
@@ -34,31 +31,44 @@ class InMemoryAgendaRepository: ObservableObject, @preconcurrency AgendaReposito
     }
     
     func createVisit(_ visit: AgendaVisit) async throws -> AgendaVisit {
-        // Since id is a let constant, we need to create a new visit with a new UUID
-        let newVisit = AgendaVisit(
-            id: UUID(),
+        // Create SwiftData Visit from AgendaVisit
+        let swiftDataVisit = Visit(
             title: visit.title,
             startDate: visit.startDate,
             endDate: visit.endDate,
+            type: visit.visitType.rawValue,
             location: visit.location,
-            notes: visit.notes,
-            reminderMinutes: visit.reminderMinutes,
-            isRecurring: visit.isRecurring,
-            recurrenceRule: visit.recurrenceRule,
-            visitType: visit.visitType,
-            eventKitIdentifier: visit.eventKitIdentifier
+            notes: visit.notes
         )
-        visits.append(newVisit)
-        saveVisits()
-        return newVisit
+        
+        // Save to SwiftData
+        try await persistenceService.saveVisit(swiftDataVisit)
+        
+        // Update local cache
+        visits.append(visit)
+        return visit
     }
     
     func updateVisit(_ visit: AgendaVisit) async throws -> AgendaVisit {
         guard let index = visits.firstIndex(where: { $0.id == visit.id }) else {
             throw AgendaError.visitNotFound
         }
+        
+        // Update in SwiftData
+        let swiftDataVisits = try persistenceService.fetchVisits()
+        if let swiftDataVisit = swiftDataVisits.first(where: { $0.id == visit.id }) {
+            swiftDataVisit.title = visit.title
+            swiftDataVisit.startDate = visit.startDate
+            swiftDataVisit.endDate = visit.endDate
+            swiftDataVisit.location = visit.location
+            swiftDataVisit.notes = visit.notes
+            swiftDataVisit.type = visit.visitType.rawValue
+            
+            try await persistenceService.save(swiftDataVisit)
+        }
+        
+        // Update local cache
         visits[index] = visit
-        saveVisits()
         return visit
     }
     
@@ -66,8 +76,15 @@ class InMemoryAgendaRepository: ObservableObject, @preconcurrency AgendaReposito
         guard let index = visits.firstIndex(where: { $0.id == visitId }) else {
             throw AgendaError.visitNotFound
         }
+        
+        // Delete from SwiftData
+        let swiftDataVisits = try persistenceService.fetchVisits()
+        if let swiftDataVisit = swiftDataVisits.first(where: { $0.id == visitId }) {
+            try await persistenceService.delete(swiftDataVisit)
+        }
+        
+        // Update local cache
         visits.remove(at: index)
-        saveVisits()
     }
     
     func requestCalendarPermission() async throws {
@@ -90,16 +107,26 @@ class InMemoryAgendaRepository: ObservableObject, @preconcurrency AgendaReposito
     // MARK: - Persistence
     
     private func loadStoredVisits() {
-        guard let data = userDefaults.data(forKey: visitsKey),
-              let decodedVisits = try? JSONDecoder().decode([AgendaVisit].self, from: data) else {
-            return
-        }
-        visits = decodedVisits
-    }
-    
-    private func saveVisits() {
-        if let encoded = try? JSONEncoder().encode(visits) {
-            userDefaults.set(encoded, forKey: visitsKey)
+        do {
+            let swiftDataVisits = try persistenceService.fetchVisits()
+            visits = swiftDataVisits.map { swiftDataVisit in
+                AgendaVisit(
+                    id: swiftDataVisit.id,
+                    title: swiftDataVisit.title,
+                    startDate: swiftDataVisit.startDate,
+                    endDate: swiftDataVisit.endDate,
+                    location: swiftDataVisit.location,
+                    notes: swiftDataVisit.notes,
+                    reminderMinutes: 0, // Default value since Visit model doesn't have this
+                    isRecurring: false, // Default value since Visit model doesn't have this
+                    recurrenceRule: nil, // Default value since Visit model doesn't have this
+                    visitType: AgendaVisitType(rawValue: swiftDataVisit.type) ?? .medical,
+                    eventKitIdentifier: nil // Default value since Visit model doesn't have this
+                )
+            }
+        } catch {
+            print("Error loading visits from SwiftData: \(error)")
+            visits = []
         }
     }
     

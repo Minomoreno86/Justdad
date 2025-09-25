@@ -90,7 +90,60 @@ class DataExportService: ObservableObject {
         let data = try await gatherAllData(for: dateRange)
         exportProgress = 0.5
         
-        let jsonData = try JSONSerialization.data(withJSONObject: ["message": "Export data placeholder"], options: .prettyPrinted)
+        let jsonData = try JSONSerialization.data(withJSONObject: [
+            "visits": data.visits.map { visit in
+                if let visit = visit as? Visit {
+                    return [
+                        "id": visit.id.uuidString,
+                        "title": visit.title,
+                        "startDate": visit.startDate.timeIntervalSince1970,
+                        "endDate": visit.endDate.timeIntervalSince1970,
+                        "location": visit.location,
+                        "notes": visit.notes,
+                        "type": visit.type
+                    ]
+                }
+                return [:]
+            },
+            "financialEntries": data.financialEntries.map { entry in
+                if let entry = entry as? FinancialEntry {
+                    return [
+                        "id": entry.id.uuidString,
+                        "title": entry.title,
+                        "amount": entry.amount,
+                        "category": entry.category.rawValue,
+                        "date": entry.date.timeIntervalSince1970,
+                        "notes": entry.notes
+                    ]
+                }
+                return [:]
+            },
+            "emotionalEntries": data.emotionalEntries.map { entry in
+                if let entry = entry as? EmotionalEntry {
+                    return [
+                        "id": entry.id.uuidString,
+                        "mood": entry.mood,
+                        "energyLevel": entry.energyLevel,
+                        "date": entry.date.timeIntervalSince1970,
+                        "note": entry.note
+                    ]
+                }
+                return [:]
+            },
+            "diaryEntries": data.diaryEntries.map { entry in
+                if let entry = entry as? DiaryEntry {
+                    return [
+                        "id": entry.id.uuidString,
+                        "title": entry.title,
+                        "content": entry.content,
+                        "date": entry.date.timeIntervalSince1970,
+                        "mood": entry.mood
+                    ]
+                }
+                return [:]
+            },
+            "exportDate": data.exportDate.timeIntervalSince1970
+        ], options: .prettyPrinted)
         exportProgress = 0.8
         
         let url = try saveJSONToDocuments(jsonData, dateRange: dateRange)
@@ -102,8 +155,57 @@ class DataExportService: ObservableObject {
     
     // MARK: - Data Gathering
     private func gatherAllData(for dateRange: DateInterval) async throws -> ExportData {
-        // Simplified data gathering - will be implemented later
-        return ExportData()
+        var exportData = ExportData()
+        
+        // Gather visits
+        do {
+            let allVisits = try persistenceService.fetchVisits()
+            exportData.visits = allVisits.filter { visit in
+                dateRange.contains(visit.startDate) || dateRange.contains(visit.endDate)
+            }
+        } catch {
+            print("Error fetching visits: \(error)")
+        }
+        
+        // Gather financial entries
+        do {
+            let allFinancialEntries = try persistenceService.fetchFinancialEntries()
+            exportData.financialEntries = allFinancialEntries.filter { entry in
+                dateRange.contains(entry.date)
+            }
+        } catch {
+            print("Error fetching financial entries: \(error)")
+        }
+        
+        // Gather emotional entries
+        do {
+            let allEmotionalEntries = try persistenceService.fetchEmotionalEntries()
+            exportData.emotionalEntries = allEmotionalEntries.filter { entry in
+                dateRange.contains(entry.date)
+            }
+        } catch {
+            print("Error fetching emotional entries: \(error)")
+        }
+        
+        // Gather diary entries
+        do {
+            let allDiaryEntries = try persistenceService.fetchDiaryEntries()
+            exportData.diaryEntries = allDiaryEntries.filter { entry in
+                dateRange.contains(entry.date)
+            }
+        } catch {
+            print("Error fetching diary entries: \(error)")
+        }
+        
+        // Gather emergency contacts
+        do {
+            let emergencyContacts = try persistenceService.fetch(EmergencyContact.self)
+            exportData.emergencyContacts = emergencyContacts
+        } catch {
+            print("Error fetching emergency contacts: \(error)")
+        }
+        
+        return exportData
     }
     
     // MARK: - PDF Generation

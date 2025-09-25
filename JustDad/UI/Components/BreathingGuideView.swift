@@ -91,10 +91,10 @@ struct BreathingCountdownView: View {
                 startCountdown()
             }
         }
-        .onChange(of: breathingPhase) { _ in
+        .onChange(of: breathingPhase) { _, _ in
             resetCountdown()
         }
-        .onChange(of: isActive) { newValue in
+        .onChange(of: isActive) { _, newValue in
             if newValue {
                 startCountdown()
             }
@@ -181,10 +181,10 @@ struct BreathingArrowsView: View {
                 startArrowAnimation()
             }
         }
-        .onChange(of: breathingPhase) { _ in
+        .onChange(of: breathingPhase) { _, _ in
             startArrowAnimation()
         }
-        .onChange(of: isActive) { newValue in
+        .onChange(of: isActive) { _, newValue in
             if newValue {
                 startArrowAnimation()
             }
@@ -257,10 +257,10 @@ struct BreathingRhythmView: View {
         .onDisappear {
             stopRhythmAnimation()
         }
-        .onChange(of: breathingPhase) { _ in
+        .onChange(of: breathingPhase) { _, _ in
             updateRhythmBars()
         }
-        .onChange(of: isActive) { newValue in
+        .onChange(of: isActive) { _, newValue in
             if newValue {
                 startRhythmAnimation()
             } else {

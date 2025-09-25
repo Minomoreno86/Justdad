@@ -14,18 +14,42 @@ struct JustDadApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @StateObject private var router = NavigationRouter()
     @StateObject private var appState = AppState()
+    @StateObject private var securityService = SecurityService.shared
+    @State private var isAuthenticated = false
+    @State private var showingBiometricAuth = false
     
     var body: some Scene {
         WindowGroup {
             if hasCompletedOnboarding {
-                MainTabView()
-                    .environmentObject(router)
-                    .environmentObject(appState)
-                    .journalModelContainer() // Add SwiftData container
+                if appState.biometricAuthEnabled && !isAuthenticated {
+                    BiometricAuthView(
+                        isAuthenticated: $isAuthenticated,
+                        onSuccess: {
+                            isAuthenticated = true
+                        }
+                    )
+                } else {
+                    MainTabView()
+                        .environmentObject(router)
+                        .environmentObject(appState)
+                        .environmentObject(securityService)
+                        .journalModelContainer() // Add SwiftData container
+                        .onAppear {
+                            if appState.biometricAuthEnabled {
+                                Task {
+                                    let success = await securityService.authenticateWithBiometrics()
+                                    if !success {
+                                        showingBiometricAuth = true
+                                    }
+                                }
+                            }
+                        }
+                }
             } else {
                 OnboardingContainerView()
                     .environmentObject(router)
                     .environmentObject(appState)
+                    .environmentObject(securityService)
                     .journalModelContainer() // Add SwiftData container
             }
         }

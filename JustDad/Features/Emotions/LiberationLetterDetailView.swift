@@ -65,7 +65,7 @@ struct LiberationLetterDetailView: View {
             }
         }
         .onAppear {
-            liberationService.startSession(for: letter.day)
+            _ = liberationService.startSession(for: letter.day)
         }
         .onDisappear {
             if isReading {

@@ -103,10 +103,10 @@ struct ReminderSettingsView: View {
         .onAppear {
             updateSelectedOption()
         }
-        .onChange(of: selectedOption) { _ in
+        .onChange(of: selectedOption) { _, _ in
             updateReminderMinutes()
         }
-        .onChange(of: customMinutes) { _ in
+        .onChange(of: customMinutes) { _, _ in
             if selectedOption == .custom {
                 updateReminderMinutes()
             }

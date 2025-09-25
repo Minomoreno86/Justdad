@@ -104,7 +104,7 @@ struct NewVisitView: View {
                 selection: $startDate,
                 displayedComponents: [.date, .hourAndMinute]
             )
-            .onChange(of: startDate) { newValue in
+            .onChange(of: startDate) { _, newValue in
                 // Auto-adjust end date if it's before start date
                 if endDate <= newValue {
                     endDate = Calendar.current.date(byAdding: .hour, value: 2, to: newValue) ?? newValue

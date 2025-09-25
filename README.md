@@ -2,23 +2,26 @@
 
 > 👨‍👧‍👦 **A comprehensive iOS companion app for modern fathers**
 
-JustDad is an offline-first iOS application built with SwiftUI that helps fathers track, organize, and navigate their parenting journey with privacy and security at its core.
+JustDad is an offline-first iOS application built with SwiftUI that helps fathers track, organize, and navigate their parenting journey with privacy and security at its core. The app features professional-grade data persistence, emotional wellness tools, financial tracking, and emergency support systems.
 
 ## 🏗 Architecture
 
 ### Tech Stack
 
 - **Framework**: SwiftUI + MVVM
-- **Storage**: CoreData + SQLCipher (offline-first)
-- **Security**: Keychain + Biometric Authentication
+- **Storage**: SwiftData + SQLCipher (offline-first)
+- **Security**: Keychain + Biometric Authentication + Data Encryption
 - **Platform**: iOS 18.5+
+- **Data Services**: Professional persistence layer with caching, sync, and migration
 
 ### Navigation Structure
 
-- **Main Flow**: TabView with 5 core tabs
+- **Main Flow**: TabView with 6 core tabs
 - **Modal Presentations**:
   - Onboarding (fullScreenCover)
   - SOS Emergency (sheet)
+  - Profile Settings (sheet)
+  - Data Export (sheet)
 - **Router**: Centralized NavigationRouter for deep linking
 
 ### Project Structure
@@ -29,22 +32,26 @@ JustDad/
 ├── Router/                  # Navigation system
 ├── Features/                # Feature modules
 │   ├── Onboarding/         # Welcome flow
-│   ├── Home/               # Dashboard
+│   ├── Home/               # Dashboard with real-time data
 │   ├── Agenda/             # Visits & appointments
-│   ├── Finance/            # Expense tracking
-│   ├── Emotions/           # Mood tracking
-│   ├── Journal/            # Personal entries
-│   ├── Community/          # Dad community
+│   ├── Finance/            # Expense tracking with receipt scanning
+│   ├── Emotions/           # Mood tracking & wellness tools
+│   ├── Journal/            # Personal entries with audio
 │   ├── SOS/                # Emergency features
-│   └── Settings/           # App configuration
+│   └── Settings/           # App configuration & profile
 ├── UI/
 │   ├── Components/         # Reusable UI components
 │   ├── Theme/              # Design tokens
 │   └── Widgets/            # Complex UI widgets
 ├── Core/
-│   ├── Models/             # Data models & mock data
+│   ├── Models/             # SwiftData models
 │   ├── Security/           # Security services
-│   └── Services/           # Business logic
+│   ├── Services/           # Business logic
+│   │   ├── ReceiptStorageService.swift    # Receipt processing
+│   │   ├── DataSyncService.swift          # Data synchronization
+│   │   ├── CacheService.swift             # Intelligent caching
+│   │   └── DataMigrationService.swift     # Data migration
+│   └── Persistence/        # Data management
 └── Resources/
     └── Localizations/      # i18n strings
 ```
@@ -63,21 +70,30 @@ JustDad/
 - **Base**: `display`, `title`, `subtitle`, `headline`, `body`, `callout`, `caption`, `footnote`, `button`
 - **Custom**: `cardTitle`, `buttonText`, `navigationTitle`
 
-## 📊 Mock Models
+## 📊 Data Models
 
-For development and testing:
+### SwiftData Models
 
-- **MockVisit**: Medical appointments and checkups
-- **MockExpense**: Financial tracking entries
-- **MockJournalEntry**: Personal diary entries (text/audio/photo)
-- **MockCommunityPost**: Community discussions
+- **Visit**: Medical appointments and checkups with attachments
+- **FinancialEntry**: Expense tracking with receipt attachments
+- **EmotionalEntry**: Mood tracking with wellness metrics
+- **DiaryEntry**: Personal journal entries with audio/photo attachments
+- **EmergencyContact**: Emergency contacts for SOS features
+- **UserPreferences**: App settings and preferences
+
+### Professional Data Services
+
+- **ReceiptStorageService**: Receipt processing with Vision framework
+- **DataSyncService**: Automatic data synchronization with conflict resolution
+- **CacheService**: Intelligent caching with memory management
+- **DataMigrationService**: Version-controlled data migration
 
 ## 🧭 Navigation
 
 ### Routes
 
-- Main features: `home`, `agenda`, `finance`, `emotions`, `community`, `journal`, `settings`
-- Sub-features: `newVisit`, `newExpense`, `quickTest`, `newPost`, etc.
+- Main features: `home`, `agenda`, `finance`, `emotions`, `sos`, `settings`
+- Sub-features: `newVisit`, `newExpense`, `quickTest`, `profileSettings`, `exportData`, etc.
 
 ### NavigationRouter API
 
@@ -89,35 +105,52 @@ NavigationRouter.shared.presentSheet(.sos)
 
 ## 🔒 Privacy & Security
 
-- **Offline-first**: All data stored locally
-- **Encryption**: SQLCipher for database encryption
+- **Offline-first**: All data stored locally with SwiftData
+- **Encryption**: SQLCipher for database encryption + file encryption
 - **Biometrics**: Face ID/Touch ID authentication
+- **Data Protection**: Receipt images encrypted and stored securely
 - **No tracking**: Zero analytics or data collection
+- **Local backup**: Secure local backup with encryption
 - **No cloud sync**: Optional in future versions
 
 ## 🚀 Development
 
-### Phase 1 (Current): Foundation
+### Phase 1 (Completed): Foundation ✅
 
-- ✅ Navigation system
-- ✅ Theme tokens
-- ✅ Mock data
+- ✅ Navigation system with 6 tabs
+- ✅ Theme tokens and design system
+- ✅ SwiftData models and persistence
 - ✅ Onboarding flow
-- 🔄 Feature wireframes
+- ✅ Professional data services
+- ✅ Security and encryption
+- ✅ Real-time data synchronization
 
-### Phase 2 (Next): Core Data & Security
+### Phase 2 (Completed): Core Features ✅
 
-- CoreData implementation
-- SQLCipher integration
-- Keychain services
-- Biometric authentication
+- ✅ SwiftData implementation with encryption
+- ✅ Receipt processing with Vision framework
+- ✅ Intelligent caching system
+- ✅ Data migration and versioning
+- ✅ Biometric authentication
+- ✅ Profile management
+- ✅ Data export functionality
+- ✅ Emergency SOS features
 
-### Phase 3 (Future): Advanced Features
+### Phase 3 (Current): Advanced Features 🔄
 
-- Widget extensions
-- Shortcuts integration
-- Export functionality
+- 🔄 Widget extensions
+- 🔄 Shortcuts integration
+- 🔄 Advanced analytics
+- 🔄 Enhanced emotional wellness tools
+- 🔄 Receipt OCR improvements
+- 🔄 Performance optimizations
+
+### Phase 4 (Future): Platform Expansion
+
 - Optional cloud sync
+- Apple Watch companion
+- macOS version
+- Advanced AI features
 
 ## 🌍 Localization
 
@@ -131,6 +164,52 @@ Currently supports:
 - iOS 18.5+
 - Xcode 16.0+
 - Swift 5.5+
+- Vision framework (for receipt processing)
+- AVFoundation (for audio recording)
+
+## 🎯 Key Features
+
+### 🏠 Home Dashboard
+
+- Real-time data synchronization
+- Recent activities tracking
+- Quick access to all features
+- Personalized insights
+
+### 📅 Agenda Management
+
+- Visit scheduling and tracking
+- Reminder notifications
+- Calendar integration
+- Visit history and analytics
+
+### 💰 Financial Tracking
+
+- Expense categorization
+- Receipt scanning with OCR
+- Financial goals and budgets
+- Professional analytics
+
+### 😊 Emotional Wellness
+
+- Mood tracking and journaling
+- Audio note recording
+- Wellness exercises
+- Emotional archive
+
+### 🆘 Emergency Support
+
+- Emergency contacts
+- Crisis hotlines
+- Calming exercises
+- Quick access features
+
+### ⚙️ Settings & Profile
+
+- User profile management
+- Data export and backup
+- Security settings
+- App preferences
 
 ---
 

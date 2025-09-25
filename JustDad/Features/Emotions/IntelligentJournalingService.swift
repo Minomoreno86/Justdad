@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import AVFoundation
+import SwiftData
 
 // MARK: - Intelligent Journaling Service
 public class IntelligentJournalingService: NSObject, ObservableObject, AVAudioPlayerDelegate {
@@ -23,6 +24,7 @@ public class IntelligentJournalingService: NSObject, ObservableObject, AVAudioPl
     private var audioRecorder: AVAudioRecorder?
     private var audioPlayer: AVAudioPlayer?
     private var recordingTimer: Timer?
+    private let persistenceService = PersistenceService.shared
     
     private override init() {
         super.init()
@@ -36,6 +38,43 @@ public class IntelligentJournalingService: NSObject, ObservableObject, AVAudioPl
         saveJournalEntries()
         print("✅ Journal entry saved: \(entry.prompt.text)")
         print("📊 Total entries: \(journalEntries.count)")
+    }
+    
+    // MARK: - Persistence Methods (SwiftData)
+    private func saveJournalEntries() {
+        // Convert JournalEntry to DiaryEntry and save to SwiftData
+        for journalEntry in journalEntries {
+            let diaryEntry = DiaryEntry(
+                content: journalEntry.content,
+                title: journalEntry.prompt.text,
+                mood: "😐", // Default emoji for now
+                date: journalEntry.date
+            )
+            Task {
+                do {
+                    try await persistenceService.saveDiaryEntry(diaryEntry)
+                } catch {
+                    print("❌ Error saving journal entry: \(error)")
+                }
+            }
+        }
+    }
+    
+    private func saveEmotionEntries() {
+        // Convert EmotionEntry to EmotionalEntry and save to SwiftData
+        for emotionEntry in emotionEntries {
+            let emotionalEntry = EmotionalEntry(
+                mood: EmotionalEntry.MoodLevel(rawValue: emotionEntry.emotion.rawValue) ?? .neutral,
+                note: emotionEntry.notes
+            )
+            Task {
+                do {
+                    try await persistenceService.saveEmotionalEntry(emotionalEntry)
+                } catch {
+                    print("❌ Error saving emotion entry: \(error)")
+                }
+            }
+        }
     }
     
     // MARK: - Emotion Entry Management
@@ -305,36 +344,49 @@ public class IntelligentJournalingService: NSObject, ObservableObject, AVAudioPl
         return url
     }
     
-    // MARK: - Data Persistence
-    private func saveJournalEntries() {
-        if let data = try? JSONEncoder().encode(journalEntries) {
-            UserDefaults.standard.set(data, forKey: "journal_entries")
-        }
-    }
-    
+    // MARK: - Data Persistence (SwiftData)
     public func loadJournalEntries() {
-        if let data = UserDefaults.standard.data(forKey: "journal_entries"),
-           let entries = try? JSONDecoder().decode([JournalEntry].self, from: data) {
-            journalEntries = entries
-            print("📖 Loaded \(entries.count) journal entries from storage")
-        } else {
-            print("📖 No journal entries found in storage")
-        }
-    }
-    
-    private func saveEmotionEntries() {
-        if let data = try? JSONEncoder().encode(emotionEntries) {
-            UserDefaults.standard.set(data, forKey: "emotion_entries")
+        Task { @MainActor in
+            do {
+                let diaryEntries = try persistenceService.fetchDiaryEntries()
+                // Convert DiaryEntry to JournalEntry format
+                journalEntries = diaryEntries.map { diaryEntry in
+                    JournalEntry(
+                        emotion: .neutral, // Convert from emoji to EmotionalState later
+                        prompt: JournalPrompt(
+                            text: diaryEntry.title ?? "Reflexión",
+                            category: .reflection,
+                            estimatedTime: "5 min"
+                        ),
+                        content: diaryEntry.content,
+                        audioURL: nil,
+                        tags: []
+                    )
+                }
+                print("✅ Loaded \(journalEntries.count) journal entries from SwiftData")
+            } catch {
+                print("❌ Error loading journal entries: \(error)")
+                journalEntries = []
+            }
         }
     }
     
     public func loadEmotionEntries() {
-        if let data = UserDefaults.standard.data(forKey: "emotion_entries"),
-           let entries = try? JSONDecoder().decode([EmotionEntry].self, from: data) {
-            emotionEntries = entries
-            print("📖 Loaded \(entries.count) emotion entries from storage")
-        } else {
-            print("📖 No emotion entries found in storage")
+        Task { @MainActor in
+            do {
+                let emotionalEntries = try persistenceService.fetchEmotionalEntries()
+                // Convert EmotionalEntry to EmotionEntry format
+                emotionEntries = emotionalEntries.map { emotionalEntry in
+                    EmotionEntry(
+                        emotion: EmotionalState(rawValue: emotionalEntry.mood.rawValue) ?? .neutral,
+                        notes: emotionalEntry.note
+                    )
+                }
+                print("✅ Loaded \(emotionEntries.count) emotion entries from SwiftData")
+            } catch {
+                print("❌ Error loading emotion entries: \(error)")
+                emotionEntries = []
+            }
         }
     }
     

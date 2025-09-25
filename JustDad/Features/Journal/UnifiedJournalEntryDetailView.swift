@@ -44,9 +44,9 @@ struct UnifiedJournalEntryDetailView: View {
     private var entryTitle: String {
         switch entry.type {
         case .intelligent(let emotion, let prompt):
-            return prompt.text ?? emotion.displayName
+            return prompt.text
         case .traditional(let title):
-            return title ?? "Entrada tradicional"
+            return title
         }
     }
     

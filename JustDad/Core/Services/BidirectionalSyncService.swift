@@ -191,7 +191,7 @@ class BidirectionalSyncService: ObservableObject, BidirectionalSyncServiceProtoc
                     syncedEvents += 1
                 } catch {
                     errors.append(error)
-                    print("❌ Failed to sync event \(event.eventIdentifier): \(error)")
+                    print("❌ Failed to sync event \(String(describing: event.eventIdentifier)): \(error)")
                 }
             }
             

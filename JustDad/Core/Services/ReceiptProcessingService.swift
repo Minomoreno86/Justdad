@@ -30,23 +30,10 @@ class ReceiptProcessingService: ObservableObject {
         #if os(iOS)
         if let image = receiptData.originalImage {
             do {
-                let (filePath, thumbnailPath) = try receiptStorageService.save(image: image, filename: financialEntry.id.uuidString)
-                
-                // Crear el attachment del recibo
-                let receiptAttachment = ReceiptAttachment(
-                    filePath: filePath,
-                    thumbnailPath: thumbnailPath,
-                    extractedAmount: receiptData.extractedAmount,
-                    extractedDate: receiptData.extractedDate,
-                    merchant: receiptData.extractedMerchant,
-                    rawText: receiptData.rawText
-                )
-                
-                // Asociar el attachment al gasto
-                financialEntry.receipt = receiptAttachment
-                
+                let receiptAttachment = try await receiptStorageService.processReceipt(image, for: financialEntry)
+                print("✅ Receipt processed successfully")
             } catch {
-                print("Error saving receipt image: \(error)")
+                print("Error processing receipt: \(error)")
                 // Continuar sin el attachment si hay error
             }
         }
@@ -75,12 +62,14 @@ class ReceiptProcessingService: ObservableObject {
     
     // MARK: - Delete Receipt
     
-    func deleteReceipt(for financialEntry: FinancialEntry) {
+    func deleteReceipt(for financialEntry: FinancialEntry) async {
         guard let attachment = financialEntry.receipt else { return }
         
-        receiptStorageService.delete(at: attachment.filePath)
-        if let thumbnailPath = attachment.thumbnailPath {
-            receiptStorageService.delete(at: thumbnailPath)
+        do {
+            try await receiptStorageService.deleteReceipt(attachment)
+            print("✅ Receipt deleted successfully")
+        } catch {
+            print("Error deleting receipt: \(error)")
         }
     }
     

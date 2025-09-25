@@ -84,6 +84,50 @@ class PersistenceService: ObservableObject {
         return try modelContext.fetch(descriptor)
     }
     
+    // MARK: - Specific Data Operations
+    func saveVisit(_ visit: Visit) async throws {
+        modelContext.insert(visit)
+        try modelContext.save()
+    }
+    
+    func saveEmotionalEntry(_ entry: EmotionalEntry) async throws {
+        modelContext.insert(entry)
+        try modelContext.save()
+    }
+    
+    func saveDiaryEntry(_ entry: DiaryEntry) async throws {
+        modelContext.insert(entry)
+        try modelContext.save()
+    }
+    
+    func fetchVisits() throws -> [Visit] {
+        let descriptor = FetchDescriptor<Visit>(
+            sortBy: [SortDescriptor(\.startDate, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+    
+    func fetchFinancialEntries() throws -> [FinancialEntry] {
+        let descriptor = FetchDescriptor<FinancialEntry>(
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+    
+    func fetchEmotionalEntries() throws -> [EmotionalEntry] {
+        let descriptor = FetchDescriptor<EmotionalEntry>(
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+    
+    func fetchDiaryEntries() throws -> [DiaryEntry] {
+        let descriptor = FetchDescriptor<DiaryEntry>(
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+    
     // MARK: - Data Export
     func exportAllData() async throws -> Data {
         // Simplified export - will be expanded later

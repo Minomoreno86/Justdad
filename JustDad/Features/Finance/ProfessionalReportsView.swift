@@ -450,7 +450,7 @@ struct ProfessionalReportsView: View {
         Task {
             do {
                 let persistenceService = PersistenceService.shared
-                let realExpenses = try await persistenceService.fetch(FinancialEntry.self)
+                let realExpenses = try persistenceService.fetch(FinancialEntry.self)
                 
                 await MainActor.run {
                     mockExpenses = realExpenses.map { entry in

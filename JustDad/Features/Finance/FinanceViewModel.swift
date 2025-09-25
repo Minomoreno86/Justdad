@@ -86,7 +86,7 @@ class FinanceViewModel: ObservableObject {
         
         Task {
             do {
-                let allExpenses = try persistenceService.fetch(FinancialEntry.self)
+                let allExpenses = try persistenceService.fetchFinancialEntries()
                 
                 await MainActor.run {
                     self.expenses = allExpenses.sorted { $0.date > $1.date }
@@ -108,7 +108,7 @@ class FinanceViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            let allExpenses = try persistenceService.fetch(FinancialEntry.self)
+            let allExpenses = try persistenceService.fetchFinancialEntries()
             
             self.expenses = allExpenses.sorted { $0.date > $1.date }
             self.recentExpenses = Array(allExpenses.prefix(5))
@@ -126,10 +126,10 @@ class FinanceViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            try await persistenceService.save(expense)
+            try await persistenceService.saveFinancialEntry(expense)
             
             // Reload all expenses to ensure data consistency and update all metrics
-            let allExpenses = try persistenceService.fetch(FinancialEntry.self)
+            let allExpenses = try persistenceService.fetchFinancialEntries()
             
             await MainActor.run {
                 self.expenses = allExpenses.sorted { $0.date > $1.date }
@@ -159,7 +159,7 @@ class FinanceViewModel: ObservableObject {
             try persistenceService.modelContext.save()
             
             // Reload all expenses to ensure data consistency and update all metrics
-            let allExpenses = try persistenceService.fetch(FinancialEntry.self)
+            let allExpenses = try persistenceService.fetchFinancialEntries()
             
             await MainActor.run {
                 self.expenses = allExpenses.sorted { $0.date > $1.date }
@@ -184,7 +184,7 @@ class FinanceViewModel: ObservableObject {
             try await persistenceService.delete(expense)
             
             // Reload all expenses to ensure data consistency and update all metrics
-            let allExpenses = try persistenceService.fetch(FinancialEntry.self)
+            let allExpenses = try persistenceService.fetchFinancialEntries()
             
             await MainActor.run {
                 self.expenses = allExpenses.sorted { $0.date > $1.date }
