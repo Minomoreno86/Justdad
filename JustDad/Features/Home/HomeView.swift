@@ -17,7 +17,9 @@ struct HomeView: View {
     // MARK: - ViewModel
     @StateObject private var viewModel: HomeViewModel
     
+    // MARK: - Environment
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var appState: AppState
     
     init(selectedTab: Binding<MainTabView.Tab>) {
         self._selectedTab = selectedTab
@@ -26,7 +28,7 @@ struct HomeView: View {
     
     // MARK: - Body
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 // Background gradient
                 LinearGradient(
@@ -85,7 +87,7 @@ struct HomeView: View {
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
                     
-                    Text(viewModel.username)
+                    Text(appState.userName.isEmpty ? "Papá" : appState.userName)
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
@@ -99,7 +101,9 @@ struct HomeView: View {
                 
                 // Profile & Settings
                 HStack(spacing: 12) {
-                    Button(action: {}) {
+                    Button(action: { 
+                        selectedTab = MainTabView.Tab.settings
+                    }) {
                         Image(systemName: "gearshape.fill")
                             .font(.title2)
                             .foregroundColor(.secondary)
@@ -107,23 +111,37 @@ struct HomeView: View {
                             .background(Color.gray.opacity(0.2))
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel("Configuración")
                     
-                    // Avatar
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.blue, Color.purple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                    // Dynamic Avatar
+                    if let imageData = appState.userProfileImageData,
+                       let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 44, height: 44)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white, lineWidth: 2)
                             )
-                        )
-                        .frame(width: 44, height: 44)
-                        .overlay(
-                            Text(String(viewModel.username.prefix(1)).uppercased())
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                        )
+                    } else {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.blue, Color.purple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 44, height: 44)
+                            .overlay(
+                                Text(String((appState.userName.isEmpty ? "P" : appState.userName).prefix(1)).uppercased())
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                            )
+                    }
                 }
             }
             .padding(.top, 8)
@@ -443,24 +461,26 @@ struct HomeView: View {
                     .cornerRadius(16)
                 }
                 
-                Button(action: { viewModel.openSOS() }) {
+                Button(action: { 
+                    selectedTab = MainTabView.Tab.settings
+                }) {
                     VStack(spacing: 12) {
                         Circle()
-                            .fill(LinearGradient(colors: [Color.red, Color.pink], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .fill(LinearGradient(colors: [Color.green, Color.teal], startPoint: .topLeading, endPoint: .bottomTrailing))
                             .frame(width: 40, height: 40)
                             .overlay(
-                                Image(systemName: "exclamationmark.triangle.fill")
+                                Image(systemName: "square.and.arrow.up.circle.fill")
                                     .font(.title2)
                                     .foregroundColor(.white)
                             )
                         
                         VStack(spacing: 4) {
-                            Text("SOS Urgente")
+                            Text("Exportar datos")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
                             
-                            Text("Emergencia")
+                            Text("Backup local")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -470,6 +490,7 @@ struct HomeView: View {
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(16)
                 }
+                .accessibilityLabel("Exportar datos y crear backup")
             }
         }
     }
@@ -485,7 +506,9 @@ struct HomeView: View {
                 
                 Spacer()
                 
-                Button("Ver todo") {}
+                Button("Ver todo") {
+                    selectedTab = MainTabView.Tab.agenda
+                }
                     .font(.caption)
                     .foregroundColor(.blue)
             }
@@ -506,6 +529,17 @@ struct HomeView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+                    
+                    Button("Crear visita") {
+                        selectedTab = MainTabView.Tab.agenda
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.blue)
+                    .cornerRadius(20)
                 }
                 .padding(.vertical, 40)
                 .padding(.horizontal, 20)
@@ -569,6 +603,17 @@ struct HomeView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
+                        
+                        Button("Agregar actividad") {
+                            selectedTab = MainTabView.Tab.emotions
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.purple)
+                        .cornerRadius(20)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 40)
@@ -715,5 +760,6 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView(selectedTab: .constant(.home))
+    HomeView(selectedTab: Binding.constant(MainTabView.Tab.home))
+        .environmentObject(AppState())
 }

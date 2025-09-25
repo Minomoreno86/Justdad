@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
@@ -94,46 +97,6 @@ struct SettingsView: View {
                         Spacer()
                         
                         Toggle("", isOn: $appState.biometricAuthEnabled)
-                    }
-                    
-                    Button(action: {
-                        // TODO: Implement passcode change
-                        print("Cambiar código de acceso")
-                    }) {
-                        HStack {
-                            Image(systemName: "lock.rotation")
-                                .foregroundColor(.orange)
-                                .frame(width: 24)
-                            
-                            Text("Cambiar código de acceso")
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    Button(action: {
-                        // TODO: Implement key management
-                        print("Gestión de claves")
-                    }) {
-                        HStack {
-                            Image(systemName: "key.fill")
-                                .foregroundColor(.green)
-                                .frame(width: 24)
-                            
-                            Text("Gestión de claves")
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
                     }
                 }
                 
@@ -260,19 +223,6 @@ struct SettingsView: View {
                         .padding(.vertical, 4)
                     }
                     
-                    HStack {
-                        Image(systemName: "icloud.and.arrow.down")
-                            .foregroundColor(.green)
-                            .frame(width: 24)
-                        
-                        Text("Copia de seguridad local")
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
                     
                     HStack {
                         Image(systemName: "chart.bar.doc.horizontal")
