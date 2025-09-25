@@ -21,6 +21,7 @@ struct SettingsView: View {
     @State private var backupStatus = "Preparando copia de seguridad..."
     @State private var showingBackupAlert = false
     @State private var backupMessage = ""
+    @State private var storageUsage: String = "Calculando..."
     
     var body: some View {
         NavigationStack {
@@ -112,6 +113,9 @@ struct SettingsView: View {
                         Spacer()
                         
                         Toggle("", isOn: $appState.darkModeEnabled)
+                            .onChange(of: appState.darkModeEnabled) { oldValue, newValue in
+                                appState.saveState()
+                            }
                     }
                     
                     Button(action: {
@@ -233,7 +237,7 @@ struct SettingsView: View {
                         
                         Spacer()
                         
-                        Text("127 MB")
+                        Text(storageUsage)
                             .foregroundColor(.secondary)
                         
                         Image(systemName: "chevron.right")
@@ -253,7 +257,7 @@ struct SettingsView: View {
                         
                         Spacer()
                         
-                        Toggle("", isOn: $appState.notificationsEnabled)
+                        Toggle("", isOn: $appState.visitRemindersEnabled)
                     }
                     
                     HStack {
@@ -265,7 +269,7 @@ struct SettingsView: View {
                         
                         Spacer()
                         
-                        Toggle("", isOn: $appState.notificationsEnabled)
+                        Toggle("", isOn: $appState.emotionalCheckInEnabled)
                     }
                     
                     HStack {
@@ -277,7 +281,7 @@ struct SettingsView: View {
                         
                         Spacer()
                         
-                        Toggle("", isOn: $appState.notificationsEnabled)
+                        Toggle("", isOn: $appState.emergencyAlertsEnabled)
                     }
                 }
                 
@@ -400,7 +404,7 @@ struct SettingsView: View {
             .sheet(isPresented: $showingProfileSheet) {
                 ProfileSettingsSheet()
             }
-            .onChange(of: appState.userName) { _ in
+            .onChange(of: appState.userName) { oldValue, newValue in
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                     profileUpdated = true
                 }
@@ -411,7 +415,7 @@ struct SettingsView: View {
                 .alert("¿Eliminar todos los datos?", isPresented: $showingDeleteConfirmation) {
                     Button("Cancelar", role: .cancel) { }
                     Button("Eliminar", role: .destructive) {
-                        // TODO: Delete all app data
+                        deleteAllAppData()
                     }
                 } message: {
                     Text("Esta acción no se puede deshacer. Todos tus datos locales serán eliminados permanentemente.")
@@ -420,6 +424,9 @@ struct SettingsView: View {
                     Button("OK") { }
                 } message: {
                     Text(backupMessage)
+                }
+                .onAppear {
+                    calculateStorageUsage()
                 }
         }
     }
@@ -616,6 +623,167 @@ struct SettingsView: View {
             print("Error creating backup manifest: \(error)")
             return false
         }
+    }
+    
+    // MARK: - Storage Functions
+    private func calculateStorageUsage() {
+        Task {
+            let usage = await getAppStorageUsage()
+            await MainActor.run {
+                storageUsage = usage
+            }
+        }
+    }
+    
+    private func getAppStorageUsage() async -> String {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let libraryPath = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
+        
+        var totalSize: Int64 = 0
+        
+        // Calculate Documents directory size
+        if let documentsSize = await calculateDirectorySize(at: documentsPath) {
+            totalSize += documentsSize
+        }
+        
+        // Calculate Library directory size
+        if let librarySize = await calculateDirectorySize(at: libraryPath) {
+            totalSize += librarySize
+        }
+        
+        return formatBytes(totalSize)
+    }
+    
+    private func calculateDirectorySize(at url: URL) async -> Int64? {
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .background).async {
+                var totalSize: Int64 = 0
+                
+                if let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles]) {
+                    for case let fileURL as URL in enumerator {
+                        do {
+                            let resourceValues = try fileURL.resourceValues(forKeys: [.fileSizeKey])
+                            if let fileSize = resourceValues.fileSize {
+                                totalSize += Int64(fileSize)
+                            }
+                        } catch {
+                            // Skip files that can't be accessed
+                            continue
+                        }
+                    }
+                }
+                
+                continuation.resume(returning: totalSize)
+            }
+        }
+    }
+    
+    private func formatBytes(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: bytes)
+    }
+    
+    // MARK: - Data Deletion Functions
+    private func deleteAllAppData() {
+        Task {
+            await performDataDeletion()
+        }
+    }
+    
+    private func performDataDeletion() async {
+        // Step 1: Clear UserDefaults
+        await clearUserDefaults()
+        
+        // Step 2: Clear SwiftData
+        await clearSwiftData()
+        
+        // Step 3: Clear Documents directory
+        await clearDocumentsDirectory()
+        
+        // Step 4: Reset AppState
+        await MainActor.run {
+            resetAppState()
+        }
+    }
+    
+    private func clearUserDefaults() async {
+        let defaults = UserDefaults.standard
+        let keys = [
+            "biometricAuthEnabled", "notificationsEnabled", "visitRemindersEnabled",
+            "emotionalCheckInEnabled", "emergencyAlertsEnabled", "darkModeEnabled",
+            "hasCompletedOnboarding", "userName", "userAge", "userProfileImageData"
+        ]
+        
+        for key in keys {
+            defaults.removeObject(forKey: key)
+        }
+    }
+    
+    private func clearSwiftData() async {
+        // Clear all SwiftData models
+        let persistenceService = PersistenceService.shared
+        
+        // Clear all data types
+        do {
+            // Clear visits
+            let visits = try persistenceService.fetchVisits()
+            for visit in visits {
+                try await persistenceService.delete(visit)
+            }
+            
+            // Clear financial entries
+            let financialEntries = try persistenceService.fetchFinancialEntries()
+            for entry in financialEntries {
+                try await persistenceService.delete(entry)
+            }
+            
+            // Clear emotional entries
+            let emotionalEntries = try persistenceService.fetchEmotionalEntries()
+            for entry in emotionalEntries {
+                try await persistenceService.delete(entry)
+            }
+            
+            // Clear diary entries
+            let diaryEntries = try persistenceService.fetchDiaryEntries()
+            for entry in diaryEntries {
+                try await persistenceService.delete(entry)
+            }
+            
+        } catch {
+            print("Error clearing SwiftData: \(error)")
+        }
+    }
+    
+    private func clearDocumentsDirectory() async {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        
+        do {
+            let fileURLs = try FileManager.default.contentsOfDirectory(at: documentsPath, includingPropertiesForKeys: nil)
+            for fileURL in fileURLs {
+                try FileManager.default.removeItem(at: fileURL)
+            }
+        } catch {
+            print("Error clearing documents directory: \(error)")
+        }
+    }
+    
+    private func resetAppState() {
+        appState.userName = ""
+        appState.userAge = ""
+        appState.userProfileImageData = nil
+        appState.biometricAuthEnabled = false
+        appState.notificationsEnabled = true
+        appState.visitRemindersEnabled = true
+        appState.emotionalCheckInEnabled = true
+        appState.emergencyAlertsEnabled = true
+        appState.darkModeEnabled = false
+        appState.hasCompletedOnboarding = false
+        appState.emergencyContacts = []
+        
+        // Recalculate storage usage
+        calculateStorageUsage()
     }
 }
 

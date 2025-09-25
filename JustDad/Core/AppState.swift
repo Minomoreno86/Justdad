@@ -17,6 +17,9 @@ class AppState: ObservableObject {
     // MARK: - Settings
     @Published var biometricAuthEnabled: Bool = false
     @Published var notificationsEnabled: Bool = true
+    @Published var visitRemindersEnabled: Bool = true
+    @Published var emotionalCheckInEnabled: Bool = true
+    @Published var emergencyAlertsEnabled: Bool = true
     @Published var darkModeEnabled: Bool = false
     @Published var hasCompletedOnboarding: Bool = false
     
@@ -40,7 +43,10 @@ class AppState: ObservableObject {
     
     private func loadState() {
         biometricAuthEnabled = UserDefaults.standard.bool(forKey: "biometricAuthEnabled")
-        notificationsEnabled = UserDefaults.standard.bool(forKey: "notificationsEnabled") 
+        notificationsEnabled = UserDefaults.standard.bool(forKey: "notificationsEnabled")
+        visitRemindersEnabled = UserDefaults.standard.bool(forKey: "visitRemindersEnabled")
+        emotionalCheckInEnabled = UserDefaults.standard.bool(forKey: "emotionalCheckInEnabled")
+        emergencyAlertsEnabled = UserDefaults.standard.bool(forKey: "emergencyAlertsEnabled")
         darkModeEnabled = UserDefaults.standard.bool(forKey: "darkModeEnabled")
         hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         userName = UserDefaults.standard.string(forKey: "userName") ?? ""
@@ -51,6 +57,9 @@ class AppState: ObservableObject {
     func saveState() {
         UserDefaults.standard.set(biometricAuthEnabled, forKey: "biometricAuthEnabled")
         UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled")
+        UserDefaults.standard.set(visitRemindersEnabled, forKey: "visitRemindersEnabled")
+        UserDefaults.standard.set(emotionalCheckInEnabled, forKey: "emotionalCheckInEnabled")
+        UserDefaults.standard.set(emergencyAlertsEnabled, forKey: "emergencyAlertsEnabled")
         UserDefaults.standard.set(darkModeEnabled, forKey: "darkModeEnabled")
         UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
         UserDefaults.standard.set(userName, forKey: "userName")
