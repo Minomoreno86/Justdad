@@ -27,11 +27,28 @@ class SecurityService: ObservableObject {
         do {
             let result = try await context.evaluatePolicy(
                 .deviceOwnerAuthenticationWithBiometrics,
-                localizedReason: "Accede a SoloPapá con Face ID o Touch ID"
+                localizedReason: "Accede a JustDad con Face ID o Touch ID"
             )
             return result
         } catch {
             print("Biometric authentication failed: \(error.localizedDescription)")
+            // Handle specific error cases
+            if let laError = error as? LAError {
+                switch laError.code {
+                case .userCancel:
+                    print("User cancelled biometric authentication")
+                case .userFallback:
+                    print("User chose fallback authentication")
+                case .biometryNotAvailable:
+                    print("Biometry not available")
+                case .biometryNotEnrolled:
+                    print("Biometry not enrolled")
+                case .biometryLockout:
+                    print("Biometry locked out")
+                default:
+                    print("Other biometric error: \(laError.localizedDescription)")
+                }
+            }
             return false
         }
     }
@@ -39,7 +56,25 @@ class SecurityService: ObservableObject {
     func isBiometricAuthenticationAvailable() -> Bool {
         let context = LAContext()
         var error: NSError?
-        return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+        let isAvailable = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+        
+        if !isAvailable {
+            print("Biometric authentication not available: \(error?.localizedDescription ?? "Unknown error")")
+            if let laError = error as? LAError {
+                switch laError.code {
+                case .biometryNotAvailable:
+                    print("Biometry not available on this device")
+                case .biometryNotEnrolled:
+                    print("Biometry not enrolled - user needs to set up Face ID/Touch ID")
+                case .biometryLockout:
+                    print("Biometry locked out - too many failed attempts")
+                default:
+                    print("Other biometric error: \(laError.localizedDescription)")
+                }
+            }
+        }
+        
+        return isAvailable
     }
     
     func getBiometricType() -> LABiometryType {

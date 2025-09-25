@@ -31,5 +31,13 @@
 	<!-- Speech Recognition Permission for Voice Reading -->
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>JustDad usa el reconocimiento de voz para validar que leas correctamente las cartas de perdón durante la Terapia del Perdón Pránica, mejorando tu experiencia de sanación.</string>
+	
+	<!-- Face ID Permission -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>JustDad usa Face ID para proteger tu información personal y asegurar que solo tú puedas acceder a tu aplicación.</string>
+	
+	<!-- Touch ID Permission -->
+	<key>NSTouchIDUsageDescription</key>
+	<string>JustDad usa Touch ID para proteger tu información personal y asegurar que solo tú puedas acceder a tu aplicación.</string>
 </dict>
 </plist>

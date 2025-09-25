@@ -93,12 +93,13 @@ class HomeViewModel: ObservableObject {
     }
     
     func navigateToSOS() {
-        selectedTab.wrappedValue = .sos
+        // SOS tab fue removido; redirigimos al Home
+        selectedTab.wrappedValue = .home
     }
     
     func openSOS() {
-        // TODO: Implement SOS functionality
-        print("Opening SOS")
+        // SOS ya no existe como tab; podríamos abrir Seguridad en Settings en el futuro
+        selectedTab.wrappedValue = .settings
     }
     
     func addNewVisit() {

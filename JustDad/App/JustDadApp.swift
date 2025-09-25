@@ -17,11 +17,35 @@ struct JustDadApp: App {
     @StateObject private var securityService = SecurityService.shared
     @State private var isAuthenticated = false
     @State private var showingBiometricAuth = false
+    @State private var showingWelcome = true
     
     var body: some Scene {
         WindowGroup {
             if hasCompletedOnboarding {
-                if appState.biometricAuthEnabled && !isAuthenticated {
+                if showingWelcome {
+                    WelcomeView()
+                        .environmentObject(appState)
+                        .environmentObject(securityService)
+                        .onAppear {
+                            // Show welcome screen for first-time users or when explicitly requested
+                            print("WelcomeView appeared - showingWelcome: \(showingWelcome)")
+                        }
+                        .onChange(of: appState.userName) { _, newValue in
+                            // If user has a name, they can proceed
+                            if !newValue.isEmpty {
+                                showingWelcome = false
+                            }
+                        }
+                        .onChange(of: appState.userProfileImageData) { _, newValue in
+                            // If user has profile data, they can proceed
+                            if newValue != nil {
+                                showingWelcome = false
+                            }
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: .init("WelcomeViewDismissed"))) { _ in
+                            showingWelcome = false
+                        }
+                } else if appState.biometricAuthEnabled && !isAuthenticated {
                     BiometricAuthView(
                         isAuthenticated: $isAuthenticated,
                         onSuccess: {
@@ -60,14 +84,12 @@ struct JustDadApp: App {
 struct MainTabView: View {
     @EnvironmentObject var router: NavigationRouter
     @State private var selectedTab: Tab = .home
-    @State private var showingSOSSheet = false
     
     enum Tab: String, CaseIterable {
         case home = "home"
         case agenda = "agenda" 
         case finance = "finance"
         case emotions = "emotions"
-        case sos = "sos"
         case settings = "settings"
         
         var title: String {
@@ -76,7 +98,6 @@ struct MainTabView: View {
             case .agenda: return NSLocalizedString("tab_agenda", comment: "")
             case .finance: return NSLocalizedString("tab_finance", comment: "")
             case .emotions: return NSLocalizedString("tab_emotions", comment: "")
-            case .sos: return NSLocalizedString("tab_sos", comment: "")
             case .settings: return NSLocalizedString("tab_settings", comment: "")
             }
         }
@@ -87,7 +108,6 @@ struct MainTabView: View {
             case .agenda: return "calendar"
             case .finance: return "creditcard.fill"
             case .emotions: return "heart.fill"
-            case .sos: return "exclamationmark.triangle.fill"
             case .settings: return "gearshape.fill"
             }
         }
@@ -125,13 +145,6 @@ struct MainTabView: View {
                     }
                     .tag(Tab.emotions)
                 
-                SOSView()
-                    .tabItem {
-                        Image(systemName: Tab.sos.icon)
-                        Text(Tab.sos.title)
-                    }
-                    .tag(Tab.sos)
-                
                 SettingsView()
                     .tabItem {
                         Image(systemName: Tab.settings.icon)
@@ -151,16 +164,6 @@ struct MainTabView: View {
                     .animation(.easeInOut, value: selectedTab),
                 alignment: .top
             )
-            
-            // Enhanced Floating SOS Button (only on Home tab)
-            if selectedTab == .home {
-                FloatingSOSButton {
-                    showingSOSSheet = true
-                }
-            }
-        }
-        .sheet(isPresented: $showingSOSSheet) {
-            SOSView()
         }
     }
 }

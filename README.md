@@ -2,7 +2,7 @@
 
 > 👨‍👧‍👦 **A comprehensive iOS companion app for modern fathers**
 
-JustDad is an offline-first iOS application built with SwiftUI that helps fathers track, organize, and navigate their parenting journey with privacy and security at its core. The app features professional-grade data persistence, emotional wellness tools, financial tracking, and emergency support systems.
+JustDad is an offline-first iOS application built with SwiftUI that helps fathers track, organize, and navigate their parenting journey with privacy and security at its core. The app features professional-grade data persistence, emotional wellness tools, and financial tracking.
 
 ## 🏗 Architecture
 
@@ -16,10 +16,9 @@ JustDad is an offline-first iOS application built with SwiftUI that helps father
 
 ### Navigation Structure
 
-- **Main Flow**: TabView with 6 core tabs
+- **Main Flow**: TabView with 5 core tabs
 - **Modal Presentations**:
   - Onboarding (fullScreenCover)
-  - SOS Emergency (sheet)
   - Profile Settings (sheet)
   - Data Export (sheet)
 - **Router**: Centralized NavigationRouter for deep linking
@@ -37,7 +36,6 @@ JustDad/
 │   ├── Finance/            # Expense tracking with receipt scanning
 │   ├── Emotions/           # Mood tracking & wellness tools
 │   ├── Journal/            # Personal entries with audio
-│   ├── SOS/                # Emergency features
 │   └── Settings/           # App configuration & profile
 ├── UI/
 │   ├── Components/         # Reusable UI components
@@ -78,7 +76,7 @@ JustDad/
 - **FinancialEntry**: Expense tracking with receipt attachments
 - **EmotionalEntry**: Mood tracking with wellness metrics
 - **DiaryEntry**: Personal journal entries with audio/photo attachments
-- **EmergencyContact**: Emergency contacts for SOS features
+- **EmergencyContact**: Contact data model (reserved for potential future use)
 - **UserPreferences**: App settings and preferences
 
 ### Professional Data Services
@@ -92,7 +90,7 @@ JustDad/
 
 ### Routes
 
-- Main features: `home`, `agenda`, `finance`, `emotions`, `sos`, `settings`
+- Main features: `home`, `agenda`, `finance`, `emotions`, `settings`
 - Sub-features: `newVisit`, `newExpense`, `quickTest`, `profileSettings`, `exportData`, etc.
 
 ### NavigationRouter API
@@ -100,7 +98,6 @@ JustDad/
 ```swift
 NavigationRouter.shared.push(.newVisit)
 NavigationRouter.shared.pop()
-NavigationRouter.shared.presentSheet(.sos)
 ```
 
 ## 🔒 Privacy & Security
@@ -117,7 +114,7 @@ NavigationRouter.shared.presentSheet(.sos)
 
 ### Phase 1 (Completed): Foundation ✅
 
-- ✅ Navigation system with 6 tabs
+- ✅ Navigation system with 5 tabs
 - ✅ Theme tokens and design system
 - ✅ SwiftData models and persistence
 - ✅ Onboarding flow
@@ -134,7 +131,6 @@ NavigationRouter.shared.presentSheet(.sos)
 - ✅ Biometric authentication
 - ✅ Profile management
 - ✅ Data export functionality
-- ✅ Emergency SOS features
 
 ### Phase 3 (Current): Advanced Features 🔄
 
@@ -196,13 +192,6 @@ Currently supports:
 - Audio note recording
 - Wellness exercises
 - Emotional archive
-
-### 🆘 Emergency Support
-
-- Emergency contacts
-- Crisis hotlines
-- Calming exercises
-- Quick access features
 
 ### ⚙️ Settings & Profile
 
