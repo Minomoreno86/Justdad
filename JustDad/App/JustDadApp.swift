@@ -13,16 +13,19 @@ import SwiftData
 struct JustDadApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @StateObject private var router = NavigationRouter()
+    @StateObject private var appState = AppState()
     
     var body: some Scene {
         WindowGroup {
             if hasCompletedOnboarding {
                 MainTabView()
                     .environmentObject(router)
+                    .environmentObject(appState)
                     .journalModelContainer() // Add SwiftData container
             } else {
                 OnboardingContainerView()
                     .environmentObject(router)
+                    .environmentObject(appState)
                     .journalModelContainer() // Add SwiftData container
             }
         }
@@ -40,6 +43,8 @@ struct MainTabView: View {
         case agenda = "agenda" 
         case finance = "finance"
         case emotions = "emotions"
+        case sos = "sos"
+        case settings = "settings"
         
         var title: String {
             switch self {
@@ -47,6 +52,8 @@ struct MainTabView: View {
             case .agenda: return NSLocalizedString("tab_agenda", comment: "")
             case .finance: return NSLocalizedString("tab_finance", comment: "")
             case .emotions: return NSLocalizedString("tab_emotions", comment: "")
+            case .sos: return NSLocalizedString("tab_sos", comment: "")
+            case .settings: return NSLocalizedString("tab_settings", comment: "")
             }
         }
         
@@ -56,6 +63,8 @@ struct MainTabView: View {
             case .agenda: return "calendar"
             case .finance: return "creditcard.fill"
             case .emotions: return "heart.fill"
+            case .sos: return "exclamationmark.triangle.fill"
+            case .settings: return "gearshape.fill"
             }
         }
     }
@@ -91,6 +100,20 @@ struct MainTabView: View {
                         Text(Tab.emotions.title)
                     }
                     .tag(Tab.emotions)
+                
+                SOSView()
+                    .tabItem {
+                        Image(systemName: Tab.sos.icon)
+                        Text(Tab.sos.title)
+                    }
+                    .tag(Tab.sos)
+                
+                SettingsView()
+                    .tabItem {
+                        Image(systemName: Tab.settings.icon)
+                        Text(Tab.settings.title)
+                    }
+                    .tag(Tab.settings)
                 
             }
             .accentColor(SuperDesign.Tokens.colors.primary) // Using SuperDesign primary color

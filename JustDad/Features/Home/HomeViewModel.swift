@@ -92,8 +92,8 @@ class HomeViewModel: ObservableObject {
         selectedTab.wrappedValue = .emotions
     }
     
-    func navigateToCommunity() {
-        selectedTab.wrappedValue = .community
+    func navigateToSOS() {
+        selectedTab.wrappedValue = .sos
     }
     
     func openSOS() {

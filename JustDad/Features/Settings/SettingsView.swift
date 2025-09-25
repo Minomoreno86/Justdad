@@ -8,42 +8,78 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @StateObject private var router = NavigationRouter.shared
     @EnvironmentObject var appState: AppState
     @State private var showingExportSheet = false
     @State private var showingDeleteConfirmation = false
+    @State private var showingProfileSheet = false
+    @State private var profileUpdated = false
+    @State private var isCreatingBackup = false
+    @State private var backupProgress: Double = 0.0
+    @State private var backupStatus = "Preparando copia de seguridad..."
+    @State private var showingBackupAlert = false
+    @State private var backupMessage = ""
     
     var body: some View {
         NavigationStack {
             List {
                 // Profile section
                 Section {
-                    HStack {
-                        Circle()
-                            .fill(Color.blue)
-                            .frame(width: 50, height: 50)
-                            .overlay(
-                                Text("P")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                            )
-                        
-                        VStack(alignment: .leading) {
-                            Text("Papá Usuario")
-                                .font(.headline)
-                            Text("Configuración de perfil")
+                    Button(action: {
+                        showingProfileSheet = true
+                    }) {
+                        HStack {
+                            // Profile Image
+                            if let imageData = appState.userProfileImageData,
+                               let image = UIImage(data: imageData) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                            } else {
+                                Circle()
+                                    .fill(Color.blue)
+                                    .frame(width: 50, height: 50)
+                                    .overlay(
+                                        Text("P")
+                                            .font(.title2)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                    )
+                            }
+                            
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Text(appState.userName.isEmpty ? "Papá Usuario" : appState.userName)
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+                                        .animation(.easeInOut(duration: 0.3), value: appState.userName)
+                                    
+                                    // Indicator when profile is configured
+                                    if !appState.userName.isEmpty {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.caption)
+                                            .foregroundColor(.green)
+                                            .scaleEffect(profileUpdated ? 1.2 : 1.0)
+                                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: profileUpdated)
+                                    }
+                                }
+                                
+                                Text(appState.userAge.isEmpty ? "Configuración de perfil" : "\(appState.userAge) años")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .animation(.easeInOut(duration: 0.3), value: appState.userAge)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
+                    .buttonStyle(PlainButtonStyle())
                 }
                 
                 // Security section
@@ -60,32 +96,44 @@ struct SettingsView: View {
                         Toggle("", isOn: $appState.biometricAuthEnabled)
                     }
                     
-                    HStack {
-                        Image(systemName: "lock.rotation")
-                            .foregroundColor(.orange)
-                            .frame(width: 24)
-                        
-                        Text("Cambiar código de acceso")
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    Button(action: {
+                        // TODO: Implement passcode change
+                        print("Cambiar código de acceso")
+                    }) {
+                        HStack {
+                            Image(systemName: "lock.rotation")
+                                .foregroundColor(.orange)
+                                .frame(width: 24)
+                            
+                            Text("Cambiar código de acceso")
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
-                    HStack {
-                        Image(systemName: "key.fill")
-                            .foregroundColor(.green)
-                            .frame(width: 24)
-                        
-                        Text("Gestión de claves")
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    Button(action: {
+                        // TODO: Implement key management
+                        print("Gestión de claves")
+                    }) {
+                        HStack {
+                            Image(systemName: "key.fill")
+                                .foregroundColor(.green)
+                                .frame(width: 24)
+                            
+                            Text("Gestión de claves")
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
                 
@@ -103,38 +151,50 @@ struct SettingsView: View {
                         Toggle("", isOn: $appState.darkModeEnabled)
                     }
                     
-                    HStack {
-                        Image(systemName: "textformat.size")
-                            .foregroundColor(.blue)
-                            .frame(width: 24)
-                        
-                        Text("Tamaño de texto")
-                        
-                        Spacer()
-                        
-                        Text("Mediano")
-                            .foregroundColor(.secondary)
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    Button(action: {
+                        // TODO: Implement text size settings
+                        print("Configurar tamaño de texto")
+                    }) {
+                        HStack {
+                            Image(systemName: "textformat.size")
+                                .foregroundColor(.blue)
+                                .frame(width: 24)
+                            
+                            Text("Tamaño de texto")
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Text("Mediano")
+                                .foregroundColor(.secondary)
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
-                    HStack {
-                        Image(systemName: "globe")
-                            .foregroundColor(.orange)
-                            .frame(width: 24)
-                        
-                        Text("Idioma")
-                        
-                        Spacer()
-                        
-                        Text("Español")
-                            .foregroundColor(.secondary)
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    Button(action: {
+                        // TODO: Implement language settings
+                        print("Configurar idioma")
+                    }) {
+                        HStack {
+                            Image(systemName: "globe")
+                                .foregroundColor(.orange)
+                                .frame(width: 24)
+                            
+                            Text("Idioma")
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Text("Español")
+                                .foregroundColor(.secondary)
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
                 
@@ -157,6 +217,47 @@ struct SettingsView: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
+                    }
+                    
+                    Button(action: {
+                        createLocalBackup()
+                    }) {
+                        HStack {
+                            Image(systemName: "icloud.and.arrow.down")
+                                .foregroundColor(.green)
+                                .frame(width: 24)
+                            
+                            Text("Copia de seguridad local")
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            if isCreatingBackup {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .disabled(isCreatingBackup)
+                    
+                    if isCreatingBackup {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(backupStatus)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            ProgressView(value: backupProgress, total: 1.0)
+                                .progressViewStyle(LinearProgressViewStyle())
+                            
+                            Text("\(Int(backupProgress * 100))% completado")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
                     }
                     
                     HStack {
@@ -202,7 +303,7 @@ struct SettingsView: View {
                         
                         Spacer()
                         
-                        Toggle("", isOn: .constant(true))
+                        Toggle("", isOn: $appState.notificationsEnabled)
                     }
                     
                     HStack {
@@ -214,64 +315,82 @@ struct SettingsView: View {
                         
                         Spacer()
                         
-                        Toggle("", isOn: .constant(true))
+                        Toggle("", isOn: $appState.notificationsEnabled)
                     }
                     
                     HStack {
-                        Image(systemName: "person.3")
-                            .foregroundColor(.blue)
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
                             .frame(width: 24)
                         
-                        Text("Nuevos posts en comunidad")
+                        Text("Alertas de emergencia")
                         
                         Spacer()
                         
-                        Toggle("", isOn: .constant(false))
+                        Toggle("", isOn: $appState.notificationsEnabled)
                     }
                 }
                 
                 // Support section
                 Section("Soporte") {
-                    HStack {
-                        Image(systemName: "questionmark.circle")
-                            .foregroundColor(.blue)
-                            .frame(width: 24)
-                        
-                        Text("Centro de ayuda")
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    Button(action: {
+                        // TODO: Implement help center
+                        print("Abrir centro de ayuda")
+                    }) {
+                        HStack {
+                            Image(systemName: "questionmark.circle")
+                                .foregroundColor(.blue)
+                                .frame(width: 24)
+                            
+                            Text("Centro de ayuda")
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
-                    HStack {
-                        Image(systemName: "envelope")
-                            .foregroundColor(.green)
-                            .frame(width: 24)
-                        
-                        Text("Contactar soporte")
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    Button(action: {
+                        // TODO: Implement support contact
+                        print("Contactar soporte")
+                    }) {
+                        HStack {
+                            Image(systemName: "envelope")
+                                .foregroundColor(.green)
+                                .frame(width: 24)
+                            
+                            Text("Contactar soporte")
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
-                    HStack {
-                        Image(systemName: "star")
-                            .foregroundColor(.yellow)
-                            .frame(width: 24)
-                        
-                        Text("Calificar la app")
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    Button(action: {
+                        // TODO: Implement app rating
+                        print("Calificar la app")
+                    }) {
+                        HStack {
+                            Image(systemName: "star")
+                                .foregroundColor(.yellow)
+                                .frame(width: 24)
+                            
+                            Text("Calificar la app")
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
                 
@@ -287,6 +406,22 @@ struct SettingsView: View {
                             
                             Text("Eliminar todos los datos")
                                 .foregroundColor(.red)
+                            
+                            Spacer()
+                        }
+                    }
+                    
+                    Button(action: {
+                        // TODO: Implement reset app
+                        print("Resetear aplicación")
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(.orange)
+                                .frame(width: 24)
+                            
+                            Text("Resetear aplicación")
+                                .foregroundColor(.orange)
                             
                             Spacer()
                         }
@@ -312,14 +447,417 @@ struct SettingsView: View {
             .sheet(isPresented: $showingExportSheet) {
                 ExportDataSheet()
             }
-            .alert("¿Eliminar todos los datos?", isPresented: $showingDeleteConfirmation) {
-                Button("Cancelar", role: .cancel) { }
-                Button("Eliminar", role: .destructive) {
-                    // TODO: Delete all app data
-                }
-            } message: {
-                Text("Esta acción no se puede deshacer. Todos tus datos locales serán eliminados permanentemente.")
+            .sheet(isPresented: $showingProfileSheet) {
+                ProfileSettingsSheet()
             }
+            .onChange(of: appState.userName) { _ in
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                    profileUpdated = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    profileUpdated = false
+                }
+            }
+                .alert("¿Eliminar todos los datos?", isPresented: $showingDeleteConfirmation) {
+                    Button("Cancelar", role: .cancel) { }
+                    Button("Eliminar", role: .destructive) {
+                        // TODO: Delete all app data
+                    }
+                } message: {
+                    Text("Esta acción no se puede deshacer. Todos tus datos locales serán eliminados permanentemente.")
+                }
+                .alert("Copia de Seguridad", isPresented: $showingBackupAlert) {
+                    Button("OK") { }
+                } message: {
+                    Text(backupMessage)
+                }
+        }
+    }
+    
+    // MARK: - Backup Functions
+    private func createLocalBackup() {
+        isCreatingBackup = true
+        backupProgress = 0.0
+        backupStatus = "Preparando copia de seguridad..."
+        
+        Task {
+            await performLocalBackup()
+        }
+    }
+    
+    private func performLocalBackup() async {
+        // Step 1: Prepare backup directory
+        await updateBackupProgress(0.1, "Creando directorio de respaldo...")
+        let backupURL = await createBackupDirectory()
+        
+        guard let backupURL = backupURL else {
+            await showBackupError("No se pudo crear el directorio de respaldo")
+            return
+        }
+        
+        // Step 2: Backup user data
+        await updateBackupProgress(0.2, "Respaldo de datos del usuario...")
+        let userDataBackup = await backupUserData(to: backupURL)
+        
+        // Step 3: Backup journal entries
+        await updateBackupProgress(0.4, "Respaldo de entradas del diario...")
+        let journalBackup = await backupJournalData(to: backupURL)
+        
+        // Step 4: Backup financial data
+        await updateBackupProgress(0.6, "Respaldo de datos financieros...")
+        let financeBackup = await backupFinancialData(to: backupURL)
+        
+        // Step 5: Backup agenda data
+        await updateBackupProgress(0.8, "Respaldo de datos de agenda...")
+        let agendaBackup = await backupAgendaData(to: backupURL)
+        
+        // Step 6: Create backup manifest
+        await updateBackupProgress(0.9, "Creando manifiesto de respaldo...")
+        let manifestCreated = await createBackupManifest(
+            userData: userDataBackup,
+            journal: journalBackup,
+            finance: financeBackup,
+            agenda: agendaBackup,
+            to: backupURL
+        )
+        
+        // Step 7: Complete backup
+        await updateBackupProgress(1.0, "Copia de seguridad completada")
+        
+        await MainActor.run {
+            isCreatingBackup = false
+            if manifestCreated {
+                backupMessage = "✅ Copia de seguridad creada exitosamente en:\n\(backupURL.path)"
+            } else {
+                backupMessage = "⚠️ Copia de seguridad creada con advertencias"
+            }
+            showingBackupAlert = true
+        }
+    }
+    
+    private func updateBackupProgress(_ progress: Double, _ status: String) async {
+        await MainActor.run {
+            backupProgress = progress
+            backupStatus = status
+        }
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+    }
+    
+    private func showBackupError(_ message: String) async {
+        await MainActor.run {
+            isCreatingBackup = false
+            backupMessage = "❌ Error: \(message)"
+            showingBackupAlert = true
+        }
+    }
+    
+    private func createBackupDirectory() async -> URL? {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let backupPath = documentsPath.appendingPathComponent("JustDad_Backup_\(Date().timeIntervalSince1970)")
+        
+        do {
+            try FileManager.default.createDirectory(at: backupPath, withIntermediateDirectories: true)
+            return backupPath
+        } catch {
+            print("Error creating backup directory: \(error)")
+            return nil
+        }
+    }
+    
+    private func backupUserData(to backupURL: URL) async -> Bool {
+        let userDataFile = backupURL.appendingPathComponent("user_data.json")
+        let userData: [String: Any] = [
+            "userName": appState.userName,
+            "userAge": appState.userAge,
+            "biometricAuthEnabled": appState.biometricAuthEnabled,
+            "notificationsEnabled": appState.notificationsEnabled,
+            "darkModeEnabled": appState.darkModeEnabled,
+            "hasCompletedOnboarding": appState.hasCompletedOnboarding,
+            "backupDate": Date().iso8601String
+        ]
+        
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: userData, options: .prettyPrinted)
+            try jsonData.write(to: userDataFile)
+            return true
+        } catch {
+            print("Error backing up user data: \(error)")
+            return false
+        }
+    }
+    
+    private func backupJournalData(to backupURL: URL) async -> Bool {
+        // TODO: Implement real journal data backup
+        let journalFile = backupURL.appendingPathComponent("journal_data.json")
+        let journalData = [
+            "entries": [],
+            "emotions": [],
+            "audioNotes": []
+        ]
+        
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: journalData, options: .prettyPrinted)
+            try jsonData.write(to: journalFile)
+            return true
+        } catch {
+            print("Error backing up journal data: \(error)")
+            return false
+        }
+    }
+    
+    private func backupFinancialData(to backupURL: URL) async -> Bool {
+        // TODO: Implement real financial data backup
+        let financeFile = backupURL.appendingPathComponent("financial_data.json")
+        let financeData = [
+            "transactions": [],
+            "goals": [],
+            "budgets": []
+        ]
+        
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: financeData, options: .prettyPrinted)
+            try jsonData.write(to: financeFile)
+            return true
+        } catch {
+            print("Error backing up financial data: \(error)")
+            return false
+        }
+    }
+    
+    private func backupAgendaData(to backupURL: URL) async -> Bool {
+        // TODO: Implement real agenda data backup
+        let agendaFile = backupURL.appendingPathComponent("agenda_data.json")
+        let agendaData = [
+            "visits": [],
+            "reminders": [],
+            "appointments": []
+        ]
+        
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: agendaData, options: .prettyPrinted)
+            try jsonData.write(to: agendaFile)
+            return true
+        } catch {
+            print("Error backing up agenda data: \(error)")
+            return false
+        }
+    }
+    
+    private func createBackupManifest(userData: Bool, journal: Bool, finance: Bool, agenda: Bool, to backupURL: URL) async -> Bool {
+        let manifestFile = backupURL.appendingPathComponent("backup_manifest.json")
+        let manifest: [String: Any] = [
+            "appVersion": "1.0.0",
+            "backupDate": Date().iso8601String,
+            "components": [
+                "userData": userData,
+                "journal": journal,
+                "finance": finance,
+                "agenda": agenda
+            ],
+            "totalComponents": 4,
+            "successfulComponents": [userData, journal, finance, agenda].filter { $0 }.count
+        ]
+        
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: manifest, options: .prettyPrinted)
+            try jsonData.write(to: manifestFile)
+            return true
+        } catch {
+            print("Error creating backup manifest: \(error)")
+            return false
+        }
+    }
+}
+
+// MARK: - Profile Settings Sheet
+struct ProfileSettingsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var appState: AppState
+    @State private var userName: String = ""
+    @State private var userAge: String = ""
+    @State private var showingImagePicker = false
+    @State private var selectedImage: UIImage?
+    @State private var isLoading = false
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Información Personal") {
+                    HStack {
+                        Button(action: {
+                            showingImagePicker = true
+                        }) {
+                            if let image = selectedImage {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(Circle())
+                            } else {
+                                Circle()
+                                    .fill(Color.blue)
+                                    .frame(width: 80, height: 80)
+                                    .overlay(
+                                        Text("P")
+                                            .font(.title)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                    )
+                            }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Foto de perfil")
+                                .font(.headline)
+                            Text("Toca para cambiar")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.leading, 16)
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                    
+                    HStack {
+                        Text("Nombre")
+                        Spacer()
+                        TextField("Tu nombre", text: $userName)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(width: 150)
+                    }
+                    
+                    HStack {
+                        Text("Edad")
+                        Spacer()
+                        TextField("Tu edad", text: $userAge)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(width: 150)
+                            .keyboardType(.numberPad)
+                    }
+                }
+                
+                Section("Preferencias") {
+                    HStack {
+                        Text("Notificaciones")
+                        Spacer()
+                        Toggle("", isOn: $appState.notificationsEnabled)
+                    }
+                    
+                    HStack {
+                        Text("Modo oscuro")
+                        Spacer()
+                        Toggle("", isOn: $appState.darkModeEnabled)
+                    }
+                }
+                
+                Section {
+                    Button(action: {
+                        saveProfile()
+                    }) {
+                        HStack {
+                            if isLoading {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Guardando...")
+                            } else {
+                                Text("Guardar cambios")
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .disabled(userName.isEmpty || isLoading)
+                }
+            }
+            .navigationTitle("Perfil")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cerrar") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                loadProfile()
+            }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker(selectedImage: $selectedImage)
+            }
+        }
+    }
+    
+    private func loadProfile() {
+        userName = appState.userName
+        userAge = appState.userAge
+        
+        // Load saved image if exists
+        if let imageData = appState.userProfileImageData,
+           let image = UIImage(data: imageData) {
+            selectedImage = image
+        }
+    }
+    
+    private func saveProfile() {
+        isLoading = true
+        
+        // Update AppState
+        appState.userName = userName
+        appState.userAge = userAge
+        
+        // Save image if selected
+        if let image = selectedImage {
+            if let imageData = image.jpegData(compressionQuality: 0.8) {
+                appState.userProfileImageData = imageData
+            }
+        }
+        
+        // Save to UserDefaults
+        appState.saveState()
+        
+        // Simulate save delay for better UX
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            isLoading = false
+            dismiss()
+        }
+    }
+}
+
+// MARK: - Image Picker
+struct ImagePicker: UIViewControllerRepresentable {
+    @Binding var selectedImage: UIImage?
+    @Environment(\.dismiss) private var dismiss
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = .photoLibrary
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePicker
+        
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.selectedImage = image
+            }
+            parent.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
         }
     }
 }
@@ -327,10 +865,16 @@ struct SettingsView: View {
 // MARK: - Export Data Sheet
 struct ExportDataSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var appState: AppState
     @State private var includePhotos = true
     @State private var includeAudio = true
     @State private var includeDiary = true
     @State private var includeFinances = true
+    @State private var isExporting = false
+    @State private var exportProgress: Double = 0.0
+    @State private var exportStatus = "Preparando exportación..."
+    @State private var showingShareSheet = false
+    @State private var exportURL: URL?
     
     var body: some View {
         NavigationStack {
@@ -359,12 +903,39 @@ struct ExportDataSheet: View {
                         .foregroundColor(.secondary)
                 }
                 
-                Section {
-                    Button("Comenzar Exportación") {
-                        // TODO: Start export process
-                        dismiss()
+                if isExporting {
+                    Section("Progreso de Exportación") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(exportStatus)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            ProgressView(value: exportProgress, total: 1.0)
+                                .progressViewStyle(LinearProgressViewStyle())
+                            
+                            Text("\(Int(exportProgress * 100))% completado")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
-                    .frame(maxWidth: .infinity)
+                }
+                
+                Section {
+                    Button(action: {
+                        startExport()
+                    }) {
+                        HStack {
+                            if isExporting {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Exportando...")
+                            } else {
+                                Text("Comenzar Exportación")
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .disabled(isExporting)
                 }
             }
             .navigationTitle("Exportar Datos")
@@ -376,7 +947,151 @@ struct ExportDataSheet: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingShareSheet) {
+                if let url = exportURL {
+                    ExportShareSheet(activityItems: [url])
+                }
+            }
         }
+    }
+    
+    // MARK: - Export Functions
+    private func startExport() {
+        isExporting = true
+        exportProgress = 0.0
+        exportStatus = "Preparando exportación..."
+        
+        Task {
+            await performExport()
+        }
+    }
+    
+    private func performExport() async {
+        // Step 1: Prepare data
+        await updateProgress(0.1, "Recopilando datos del perfil...")
+        let profileData = await collectProfileData()
+        
+        await updateProgress(0.2, "Recopilando datos del diario...")
+        let journalData = await collectJournalData()
+        
+        await updateProgress(0.3, "Recopilando datos financieros...")
+        let financeData = await collectFinanceData()
+        
+        await updateProgress(0.4, "Recopilando datos de agenda...")
+        let agendaData = await collectAgendaData()
+        
+        await updateProgress(0.5, "Creando archivo de exportación...")
+        let exportData = createExportData(
+            profile: profileData,
+            journal: journalData,
+            finance: financeData,
+            agenda: agendaData
+        )
+        
+        await updateProgress(0.6, "Comprimiendo datos...")
+        let zipURL = await createZipFile(with: exportData)
+        
+        await updateProgress(0.8, "Finalizando exportación...")
+        await MainActor.run {
+            exportURL = zipURL
+            exportProgress = 1.0
+            exportStatus = "Exportación completada"
+            isExporting = false
+            showingShareSheet = true
+        }
+    }
+    
+    private func updateProgress(_ progress: Double, _ status: String) async {
+        await MainActor.run {
+            exportProgress = progress
+            exportStatus = status
+        }
+        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+    }
+    
+    private func collectProfileData() async -> [String: Any] {
+        return [
+            "userName": appState.userName,
+            "userAge": appState.userAge,
+            "biometricAuthEnabled": appState.biometricAuthEnabled,
+            "notificationsEnabled": appState.notificationsEnabled,
+            "darkModeEnabled": appState.darkModeEnabled,
+            "hasCompletedOnboarding": appState.hasCompletedOnboarding,
+            "exportDate": Date().iso8601String
+        ]
+    }
+    
+    private func collectJournalData() async -> [String: Any] {
+        // TODO: Implement real journal data collection
+        return [
+            "entries": [],
+            "emotions": [],
+            "audioNotes": []
+        ]
+    }
+    
+    private func collectFinanceData() async -> [String: Any] {
+        // TODO: Implement real finance data collection
+        return [
+            "transactions": [],
+            "goals": [],
+            "budgets": []
+        ]
+    }
+    
+    private func collectAgendaData() async -> [String: Any] {
+        // TODO: Implement real agenda data collection
+        return [
+            "visits": [],
+            "reminders": [],
+            "appointments": []
+        ]
+    }
+    
+    private func createExportData(profile: [String: Any], journal: [String: Any], finance: [String: Any], agenda: [String: Any]) -> [String: Any] {
+        return [
+            "appVersion": "1.0.0",
+            "exportDate": Date().iso8601String,
+            "profile": profile,
+            "journal": journal,
+            "finance": finance,
+            "agenda": agenda
+        ]
+    }
+    
+    private func createZipFile(with data: [String: Any]) async -> URL? {
+        // TODO: Implement real ZIP file creation
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileName = "JustDad_Export_\(Date().timeIntervalSince1970).json"
+        let fileURL = documentsPath.appendingPathComponent(fileName)
+        
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: data, options: .prettyPrinted)
+            try jsonData.write(to: fileURL)
+            return fileURL
+        } catch {
+            print("Error creating export file: \(error)")
+            return nil
+        }
+    }
+}
+
+// MARK: - Export Share Sheet
+struct ExportShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - Date Extension
+extension Date {
+    var iso8601String: String {
+        let formatter = ISO8601DateFormatter()
+        return formatter.string(from: self)
     }
 }
 

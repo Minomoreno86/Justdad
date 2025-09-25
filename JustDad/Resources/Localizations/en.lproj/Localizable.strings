@@ -13,6 +13,8 @@
 "tab_agenda" = "Agenda";
 "tab_finance" = "Finance";
 "tab_emotions" = "Emotions";
+"tab_sos" = "SOS";
+"tab_settings" = "Settings";
 "tab_community" = "Community";
 
 // MARK: - Call to Actions

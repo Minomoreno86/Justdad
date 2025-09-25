@@ -23,6 +23,7 @@ class AppState: ObservableObject {
     // MARK: - User Info
     @Published var userName: String = ""
     @Published var userAge: String = ""
+    @Published var userProfileImageData: Data?
     
     // MARK: - Emergency
     @Published var emergencyContacts: [EmergencyContact] = []
@@ -44,6 +45,7 @@ class AppState: ObservableObject {
         hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         userName = UserDefaults.standard.string(forKey: "userName") ?? ""
         userAge = UserDefaults.standard.string(forKey: "userAge") ?? ""
+        userProfileImageData = UserDefaults.standard.data(forKey: "userProfileImageData")
     }
     
     func saveState() {
@@ -53,6 +55,9 @@ class AppState: ObservableObject {
         UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
         UserDefaults.standard.set(userName, forKey: "userName")
         UserDefaults.standard.set(userAge, forKey: "userAge")
+        if let imageData = userProfileImageData {
+            UserDefaults.standard.set(imageData, forKey: "userProfileImageData")
+        }
     }
 }
 
