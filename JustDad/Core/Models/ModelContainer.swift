@@ -45,12 +45,26 @@ class ModelContainerManager {
             allowsSave: true
         )
         
-        _container = try ModelContainer(
-            for: schema,
-            configurations: [modelConfiguration]
-        )
-        
-        print("✅ SwiftData container initialized successfully")
+        do {
+            _container = try ModelContainer(
+                for: schema,
+                configurations: [modelConfiguration]
+            )
+            print("✅ SwiftData container initialized successfully")
+        } catch {
+            print("❌ Error initializing SwiftData container: \(error)")
+            // Fallback to in-memory storage if persistent storage fails
+            let fallbackConfiguration = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: true,
+                allowsSave: true
+            )
+            _container = try ModelContainer(
+                for: schema,
+                configurations: [fallbackConfiguration]
+            )
+            print("⚠️ Using in-memory storage as fallback")
+        }
     }
     
     func getContext() -> ModelContext? {

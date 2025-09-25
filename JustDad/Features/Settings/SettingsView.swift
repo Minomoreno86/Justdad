@@ -118,10 +118,7 @@ struct SettingsView: View {
                             }
                     }
                     
-                    Button(action: {
-                        // TODO: Implement text size settings
-                        print("Configurar tamaño de texto")
-                    }) {
+                    NavigationLink(destination: TextSizeSettingsView()) {
                         HStack {
                             Image(systemName: "textformat.size")
                                 .foregroundColor(.blue)
@@ -132,7 +129,7 @@ struct SettingsView: View {
                             
                             Spacer()
                             
-                            Text("Mediano")
+                            Text(appState.textSize.displayName)
                                 .foregroundColor(.secondary)
                             
                             Image(systemName: "chevron.right")
@@ -1210,6 +1207,53 @@ extension Date {
     var iso8601String: String {
         let formatter = ISO8601DateFormatter()
         return formatter.string(from: self)
+    }
+}
+
+// MARK: - Text Size Settings View
+struct TextSizeSettingsView: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        List {
+            Section {
+                ForEach(TextSize.allCases, id: \.self) { textSize in
+                    Button(action: {
+                        appState.textSize = textSize
+                        appState.saveState()
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(textSize.displayName)
+                                    .font(textSize.fontSize)
+                                    .foregroundColor(.primary)
+                                
+                                Text("Tamaño de texto \(textSize.displayName.lowercased())")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            if appState.textSize == textSize {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            } header: {
+                Text("Selecciona el tamaño de texto")
+            } footer: {
+                Text("El tamaño de texto afectará a toda la aplicación. Los cambios se aplicarán inmediatamente.")
+            }
+        }
+        .navigationTitle("Tamaño de Texto")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

@@ -27,6 +27,7 @@ struct JustDadApp: App {
                         .environmentObject(appState)
                         .environmentObject(securityService)
                         .preferredColorScheme(appState.darkModeEnabled ? .dark : .light)
+                        .environment(\.sizeCategory, appState.textSize.sizeCategory)
                         .onAppear {
                             // Show welcome screen for first-time users or when explicitly requested
                             print("WelcomeView appeared - showingWelcome: \(showingWelcome)")
@@ -54,13 +55,15 @@ struct JustDadApp: App {
                         }
                     )
                     .preferredColorScheme(appState.darkModeEnabled ? .dark : .light)
+                    .environment(\.sizeCategory, appState.textSize.sizeCategory)
                 } else {
                     MainTabView()
                         .environmentObject(router)
                         .environmentObject(appState)
                         .environmentObject(securityService)
-                        .journalModelContainer() // Add SwiftData container
+                        .modelContainer(JournalModelContainer.shared.container)
                         .preferredColorScheme(appState.darkModeEnabled ? .dark : .light)
+                        .environment(\.sizeCategory, appState.textSize.sizeCategory)
                         .onAppear {
                             if appState.biometricAuthEnabled {
                                 Task {
@@ -77,8 +80,9 @@ struct JustDadApp: App {
                     .environmentObject(router)
                     .environmentObject(appState)
                     .environmentObject(securityService)
-                    .journalModelContainer() // Add SwiftData container
+                    .modelContainer(JournalModelContainer.shared.container)
                     .preferredColorScheme(appState.darkModeEnabled ? .dark : .light)
+                    .environment(\.sizeCategory, appState.textSize.sizeCategory)
             }
         }
     }
