@@ -138,10 +138,7 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Button(action: {
-                        // TODO: Implement language settings
-                        print("Configurar idioma")
-                    }) {
+                    NavigationLink(destination: LanguageSettingsView()) {
                         HStack {
                             Image(systemName: "globe")
                                 .foregroundColor(.orange)
@@ -152,8 +149,11 @@ struct SettingsView: View {
                             
                             Spacer()
                             
-                            Text("Español")
-                                .foregroundColor(.secondary)
+                            HStack(spacing: 4) {
+                                Text(appState.language.flag)
+                                Text(appState.language.displayName)
+                                    .foregroundColor(.secondary)
+                            }
                             
                             Image(systemName: "chevron.right")
                                 .font(.caption)
@@ -1253,6 +1253,58 @@ struct TextSizeSettingsView: View {
             }
         }
         .navigationTitle("Tamaño de Texto")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Language Settings View
+struct LanguageSettingsView: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        List {
+            Section {
+                ForEach(Language.allCases, id: \.self) { language in
+                    Button(action: {
+                        appState.language = language
+                        appState.saveState()
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 8) {
+                                    Text(language.flag)
+                                        .font(.title2)
+                                    
+                                    Text(language.displayName)
+                                        .font(.body)
+                                        .foregroundColor(.primary)
+                                }
+                                
+                                Text("Idioma \(language.displayName)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            if appState.language == language {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            } header: {
+                Text("Selecciona el idioma")
+            } footer: {
+                Text("El idioma afectará a toda la aplicación. Los cambios se aplicarán inmediatamente.")
+            }
+        }
+        .navigationTitle("Idioma")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

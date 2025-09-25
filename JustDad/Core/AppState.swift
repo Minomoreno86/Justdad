@@ -22,6 +22,7 @@ class AppState: ObservableObject {
     @Published var emergencyAlertsEnabled: Bool = true
     @Published var darkModeEnabled: Bool = false
     @Published var textSize: TextSize = .medium
+    @Published var language: Language = .spanish
     @Published var hasCompletedOnboarding: Bool = false
     
     // MARK: - User Info
@@ -53,6 +54,10 @@ class AppState: ObservableObject {
            let textSizeValue = TextSize(rawValue: textSizeRawValue) {
             textSize = textSizeValue
         }
+        if let languageRawValue = UserDefaults.standard.string(forKey: "language"),
+           let languageValue = Language(rawValue: languageRawValue) {
+            language = languageValue
+        }
         hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         userName = UserDefaults.standard.string(forKey: "userName") ?? ""
         userAge = UserDefaults.standard.string(forKey: "userAge") ?? ""
@@ -67,6 +72,7 @@ class AppState: ObservableObject {
         UserDefaults.standard.set(emergencyAlertsEnabled, forKey: "emergencyAlertsEnabled")
         UserDefaults.standard.set(darkModeEnabled, forKey: "darkModeEnabled")
         UserDefaults.standard.set(textSize.rawValue, forKey: "textSize")
+        UserDefaults.standard.set(language.rawValue, forKey: "language")
         UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
         UserDefaults.standard.set(userName, forKey: "userName")
         UserDefaults.standard.set(userAge, forKey: "userAge")
@@ -120,6 +126,33 @@ enum TextSize: String, CaseIterable {
         case .medium: return .medium
         case .large: return .large
         case .extraLarge: return .extraLarge
+        }
+    }
+}
+
+// MARK: - Language Enum
+enum Language: String, CaseIterable {
+    case spanish = "es"
+    case english = "en"
+    
+    var displayName: String {
+        switch self {
+        case .spanish: return "Español"
+        case .english: return "English"
+        }
+    }
+    
+    var locale: Locale {
+        switch self {
+        case .spanish: return Locale(identifier: "es")
+        case .english: return Locale(identifier: "en")
+        }
+    }
+    
+    var flag: String {
+        switch self {
+        case .spanish: return "🇪🇸"
+        case .english: return "🇺🇸"
         }
     }
 }
