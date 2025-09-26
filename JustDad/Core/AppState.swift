@@ -41,6 +41,7 @@ class AppState: ObservableObject {
         self.accessibilityManager = AccessibilityManager.shared
         // Load saved state from UserDefaults if needed
         loadState()
+        
     }
     
     private func loadState() {

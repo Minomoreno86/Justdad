@@ -56,6 +56,7 @@ struct JustDadApp: App {
                     )
                     .preferredColorScheme(appState.darkModeEnabled ? .dark : .light)
                     .environment(\.sizeCategory, appState.textSize.sizeCategory)
+                    .environment(\.locale, appState.language.locale)
                 } else {
                     MainTabView()
                         .environmentObject(router)
@@ -83,6 +84,7 @@ struct JustDadApp: App {
                     .modelContainer(JournalModelContainer.shared.container)
                     .preferredColorScheme(appState.darkModeEnabled ? .dark : .light)
                     .environment(\.sizeCategory, appState.textSize.sizeCategory)
+                    .environment(\.locale, appState.language.locale)
             }
         }
     }
@@ -102,11 +104,11 @@ struct MainTabView: View {
         
         var title: String {
             switch self {
-            case .home: return NSLocalizedString("tab_home", comment: "")
-            case .agenda: return NSLocalizedString("tab_agenda", comment: "")
-            case .finance: return NSLocalizedString("tab_finance", comment: "")
-            case .emotions: return NSLocalizedString("tab_emotions", comment: "")
-            case .settings: return NSLocalizedString("tab_settings", comment: "")
+            case .home: return NSLocalizedString("home", comment: "")
+            case .agenda: return NSLocalizedString("agenda", comment: "")
+            case .finance: return NSLocalizedString("finance", comment: "")
+            case .emotions: return NSLocalizedString("emotions", comment: "")
+            case .settings: return NSLocalizedString("settings", comment: "")
             }
         }
         

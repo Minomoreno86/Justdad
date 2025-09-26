@@ -31,7 +31,7 @@ struct SettingsView: View {
                     Button(action: {
                         showingProfileSheet = true
                     }) {
-                        HStack {
+                    HStack {
                             // Profile Image
                             if let imageData = appState.userProfileImageData,
                                let image = UIImage(data: imageData) {
@@ -41,21 +41,21 @@ struct SettingsView: View {
                                     .frame(width: 50, height: 50)
                                     .clipShape(Circle())
                             } else {
-                                Circle()
-                                    .fill(Color.blue)
-                                    .frame(width: 50, height: 50)
-                                    .overlay(
-                                        Text("P")
-                                            .font(.title2)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.white)
-                                    )
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 50, height: 50)
+                            .overlay(
+                                Text("P")
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                            )
                             }
-                            
-                            VStack(alignment: .leading) {
+                        
+                        VStack(alignment: .leading) {
                                 HStack {
                                     Text(appState.userName.isEmpty ? "Papá Usuario" : appState.userName)
-                                        .font(.headline)
+                                .font(.headline)
                                         .foregroundColor(.primary)
                                         .animation(.easeInOut(duration: 0.3), value: appState.userName)
                                     
@@ -70,18 +70,18 @@ struct SettingsView: View {
                                 }
                                 
                                 Text(appState.userAge.isEmpty ? "Configuración de perfil" : "\(appState.userAge) años")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .animation(.easeInOut(duration: 0.3), value: appState.userAge)
-                            }
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+                                    .animation(.easeInOut(duration: 0.3), value: appState.userAge)
                         }
-                        .padding(.vertical, 4)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -119,45 +119,45 @@ struct SettingsView: View {
                     }
                     
                     NavigationLink(destination: TextSizeSettingsView()) {
-                        HStack {
-                            Image(systemName: "textformat.size")
-                                .foregroundColor(.blue)
-                                .frame(width: 24)
-                            
+                    HStack {
+                        Image(systemName: "textformat.size")
+                            .foregroundColor(.blue)
+                            .frame(width: 24)
+                        
                             Text("Tamaño de texto")
                                 .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
+                        
+                        Spacer()
+                        
                             Text(appState.textSize.displayName)
-                                .foregroundColor(.secondary)
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            .foregroundColor(.secondary)
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         }
                     }
                     
                     NavigationLink(destination: LanguageSettingsView()) {
-                        HStack {
-                            Image(systemName: "globe")
-                                .foregroundColor(.orange)
-                                .frame(width: 24)
-                            
+                    HStack {
+                        Image(systemName: "globe")
+                            .foregroundColor(.orange)
+                            .frame(width: 24)
+                        
                             Text("Idioma")
                                 .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
+                        
+                        Spacer()
+                        
                             HStack(spacing: 4) {
                                 Text(appState.language.flag)
                                 Text(appState.language.displayName)
-                                    .foregroundColor(.secondary)
+                            .foregroundColor(.secondary)
                             }
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -186,24 +186,24 @@ struct SettingsView: View {
                     Button(action: {
                         createLocalBackup()
                     }) {
-                        HStack {
-                            Image(systemName: "icloud.and.arrow.down")
-                                .foregroundColor(.green)
-                                .frame(width: 24)
-                            
-                            Text("Copia de seguridad local")
+                    HStack {
+                        Image(systemName: "icloud.and.arrow.down")
+                            .foregroundColor(.green)
+                            .frame(width: 24)
+                        
+                        Text("Copia de seguridad local")
                                 .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
+                        
+                        Spacer()
+                        
                             if isCreatingBackup {
                                 ProgressView()
                                     .scaleEffect(0.8)
                             } else {
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                         }
                     }
                     .disabled(isCreatingBackup)
@@ -288,19 +288,19 @@ struct SettingsView: View {
                         // TODO: Implement help center
                         print("Abrir centro de ayuda")
                     }) {
-                        HStack {
-                            Image(systemName: "questionmark.circle")
-                                .foregroundColor(.blue)
-                                .frame(width: 24)
-                            
-                            Text("Centro de ayuda")
+                    HStack {
+                        Image(systemName: "questionmark.circle")
+                            .foregroundColor(.blue)
+                            .frame(width: 24)
+                        
+                        Text("Centro de ayuda")
                                 .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         }
                     }
                     
@@ -308,19 +308,19 @@ struct SettingsView: View {
                         // TODO: Implement support contact
                         print("Contactar soporte")
                     }) {
-                        HStack {
-                            Image(systemName: "envelope")
-                                .foregroundColor(.green)
-                                .frame(width: 24)
-                            
-                            Text("Contactar soporte")
+                    HStack {
+                        Image(systemName: "envelope")
+                            .foregroundColor(.green)
+                            .frame(width: 24)
+                        
+                        Text("Contactar soporte")
                                 .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         }
                     }
                     
@@ -328,19 +328,19 @@ struct SettingsView: View {
                         // TODO: Implement app rating
                         print("Calificar la app")
                     }) {
-                        HStack {
-                            Image(systemName: "star")
-                                .foregroundColor(.yellow)
-                                .frame(width: 24)
-                            
-                            Text("Calificar la app")
+                    HStack {
+                        Image(systemName: "star")
+                            .foregroundColor(.yellow)
+                            .frame(width: 24)
+                        
+                        Text("Calificar la app")
                                 .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -409,22 +409,22 @@ struct SettingsView: View {
                     profileUpdated = false
                 }
             }
-                .alert("¿Eliminar todos los datos?", isPresented: $showingDeleteConfirmation) {
-                    Button("Cancelar", role: .cancel) { }
-                    Button("Eliminar", role: .destructive) {
+            .alert("¿Eliminar todos los datos?", isPresented: $showingDeleteConfirmation) {
+                Button("Cancelar", role: .cancel) { }
+                Button("Eliminar", role: .destructive) {
                         deleteAllAppData()
-                    }
-                } message: {
-                    Text("Esta acción no se puede deshacer. Todos tus datos locales serán eliminados permanentemente.")
                 }
+            } message: {
+                Text("Esta acción no se puede deshacer. Todos tus datos locales serán eliminados permanentemente.")
+            }
                 .alert("Copia de Seguridad", isPresented: $showingBackupAlert) {
                     Button("OK") { }
                 } message: {
                     Text(backupMessage)
                 }
-                .onAppear {
-                    calculateStorageUsage()
-                }
+        .onAppear {
+            calculateStorageUsage()
+        }
         }
     }
     
@@ -1047,8 +1047,8 @@ struct ExportDataSheet: View {
                             } else {
                                 Text("Comenzar Exportación")
                             }
-                        }
-                        .frame(maxWidth: .infinity)
+                    }
+                    .frame(maxWidth: .infinity)
                     }
                     .disabled(isExporting)
                 }

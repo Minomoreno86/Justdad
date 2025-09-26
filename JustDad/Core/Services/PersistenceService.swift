@@ -101,31 +101,51 @@ class PersistenceService: ObservableObject {
     }
     
     func fetchVisits() throws -> [Visit] {
-        let descriptor = FetchDescriptor<Visit>(
-            sortBy: [SortDescriptor(\.startDate, order: .reverse)]
-        )
-        return try modelContext.fetch(descriptor)
+        do {
+            let descriptor = FetchDescriptor<Visit>(
+                sortBy: [SortDescriptor(\.startDate, order: .reverse)]
+            )
+            return try modelContext.fetch(descriptor)
+        } catch {
+            handleDatabaseError(error)
+            return []
+        }
     }
     
     func fetchFinancialEntries() throws -> [FinancialEntry] {
-        let descriptor = FetchDescriptor<FinancialEntry>(
-            sortBy: [SortDescriptor(\.date, order: .reverse)]
-        )
-        return try modelContext.fetch(descriptor)
+        do {
+            let descriptor = FetchDescriptor<FinancialEntry>(
+                sortBy: [SortDescriptor(\.date, order: .reverse)]
+            )
+            return try modelContext.fetch(descriptor)
+        } catch {
+            handleDatabaseError(error)
+            return []
+        }
     }
     
     func fetchEmotionalEntries() throws -> [EmotionalEntry] {
-        let descriptor = FetchDescriptor<EmotionalEntry>(
-            sortBy: [SortDescriptor(\.date, order: .reverse)]
-        )
-        return try modelContext.fetch(descriptor)
+        do {
+            let descriptor = FetchDescriptor<EmotionalEntry>(
+                sortBy: [SortDescriptor(\.date, order: .reverse)]
+            )
+            return try modelContext.fetch(descriptor)
+        } catch {
+            handleDatabaseError(error)
+            return []
+        }
     }
     
     func fetchDiaryEntries() throws -> [DiaryEntry] {
-        let descriptor = FetchDescriptor<DiaryEntry>(
-            sortBy: [SortDescriptor(\.date, order: .reverse)]
-        )
-        return try modelContext.fetch(descriptor)
+        do {
+            let descriptor = FetchDescriptor<DiaryEntry>(
+                sortBy: [SortDescriptor(\.date, order: .reverse)]
+            )
+            return try modelContext.fetch(descriptor)
+        } catch {
+            handleDatabaseError(error)
+            return []
+        }
     }
     
     // MARK: - Data Export
@@ -139,5 +159,37 @@ class PersistenceService: ObservableObject {
     func clearAllData() async throws {
         // Simplified cleanup - will be expanded later
         try modelContext.save()
+    }
+    
+    // MARK: - Database Error Handling
+    func handleDatabaseError(_ error: Error) {
+        print("❌ Database error: \(error)")
+        errorMessage = "Database error: \(error.localizedDescription)"
+        
+        // Check if it's a table not found error
+        if let nsError = error as NSError?,
+           nsError.domain == "NSCocoaErrorDomain",
+           nsError.code == 256 {
+            print("🔄 Database corruption detected, attempting reset...")
+            resetDatabase()
+        }
+    }
+    
+    func resetDatabase() {
+        print("🔄 Resetting database due to corruption...")
+        
+        // Clear the current context
+        modelContext.rollback()
+        
+        // Try to reinitialize the container
+        do {
+            // This will trigger a fresh database creation
+            try modelContext.save()
+            print("✅ Database reset successful")
+            errorMessage = nil
+        } catch {
+            print("❌ Failed to reset database: \(error)")
+            errorMessage = "Failed to reset database: \(error.localizedDescription)"
+        }
     }
 }

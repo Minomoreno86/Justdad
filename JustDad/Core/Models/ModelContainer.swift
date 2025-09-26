@@ -74,4 +74,48 @@ class ModelContainerManager {
         }
         return ModelContext(container)
     }
+    
+    func resetDatabase() {
+        print("🔄 Resetting database...")
+        _container = nil
+        
+        // Clear any existing database files
+        clearDatabaseFiles()
+        
+        // Reinitialize container
+        do {
+            try initializeContainer()
+            print("✅ Database reset successfully")
+        } catch {
+            print("❌ Failed to reset database: \(error)")
+        }
+    }
+    
+    private func clearDatabaseFiles() {
+        let fileManager = FileManager.default
+        
+        // Get the application support directory
+        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            print("❌ Could not find application support directory")
+            return
+        }
+        
+        // Clear SwiftData files
+        let swiftDataURL = appSupportURL.appendingPathComponent("default.store")
+        let swiftDataShmURL = appSupportURL.appendingPathComponent("default.store-shm")
+        let swiftDataWalURL = appSupportURL.appendingPathComponent("default.store-wal")
+        
+        let filesToDelete = [swiftDataURL, swiftDataShmURL, swiftDataWalURL]
+        
+        for fileURL in filesToDelete {
+            if fileManager.fileExists(atPath: fileURL.path) {
+                do {
+                    try fileManager.removeItem(at: fileURL)
+                    print("🗑️ Deleted: \(fileURL.lastPathComponent)")
+                } catch {
+                    print("⚠️ Could not delete \(fileURL.lastPathComponent): \(error)")
+                }
+            }
+        }
+    }
 }

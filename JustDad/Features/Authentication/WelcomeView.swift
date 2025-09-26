@@ -18,7 +18,6 @@ struct WelcomeView: View {
     @State private var availableAuthMethods: [AuthMethod] = []
     @State private var showingSettings = false
     @State private var showingUserManagement = false
-    @State private var shouldDismissWelcome = false
     
     enum AuthMethod: String, CaseIterable {
         case biometric = "biometric"
@@ -87,29 +86,6 @@ struct WelcomeView: View {
             }
         }
         .navigationBarHidden(true)
-        .overlay(
-            // Skip button in top-right corner
-            VStack {
-                HStack {
-                    Spacer()
-                    Button("Saltar") {
-                        shouldDismissWelcome = true
-                    }
-                    .foregroundColor(SuperDesign.Tokens.colors.primary)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(SuperDesign.Tokens.colors.primary.opacity(0.1))
-                    )
-                    .padding(.top, 8)
-                    .padding(.trailing, 16)
-                }
-                Spacer()
-            }
-        )
         .alert("Error de Autenticación", isPresented: $showingError) {
             Button("Intentar de nuevo") {
                 authenticationError = nil
@@ -127,14 +103,6 @@ struct WelcomeView: View {
         }
         .sheet(isPresented: $showingUserManagement) {
             UserManagementView()
-        }
-        .onChange(of: shouldDismissWelcome) { _, newValue in
-            if newValue {
-                // Close welcome screen and proceed to main app
-                // This will be handled by the parent view
-                print("WelcomeView: shouldDismissWelcome = \(newValue)")
-                NotificationCenter.default.post(name: .init("WelcomeViewDismissed"), object: nil)
-            }
         }
         .onAppear {
             checkAvailableAuthMethods()
@@ -432,43 +400,6 @@ struct WelcomeView: View {
                 .foregroundColor(.primary)
             
             VStack(spacing: 12) {
-                // Continue Button - More prominent
-                Button(action: {
-                    shouldDismissWelcome = true
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.right.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                            .frame(width: 28)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Continuar")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                            
-                            Text("Ir a la aplicación")
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(SuperDesign.Tokens.colors.primary)
-                            .shadow(color: SuperDesign.Tokens.colors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
-                
                 // Support
                 Button(action: {
                     // TODO: Implement support
@@ -542,7 +473,7 @@ struct WelcomeView: View {
                     
                 if success {
                     // Authentication successful - navigate to main app
-                    shouldDismissWelcome = true
+                    NotificationCenter.default.post(name: .init("WelcomeViewDismissed"), object: nil)
                 } else {
                     // Provide specific error message based on authentication method
                     switch method {
